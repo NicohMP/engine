@@ -1,0 +1,14 @@
+*.o
+*.obj
+.out
+*.a
+*.so
+*.dylib
+*.exe
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+.DS_Store
+EOF
+.vscode/*

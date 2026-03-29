@@ -1,4 +1,5 @@
 #include "analytics.hpp"
+#include "event_types.hpp"
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -101,12 +102,18 @@ vector<double> SymbolSeries::mva(double Tick::* field, size_t window) const {
     return mvas;
 }
 
-BacktestReport compute_backtest_report(const vector<pair<int64_t, double>>& equity, const vector<Trade>& trades) {
+BacktestReport compute_backtest_report(
+    const vector<pair<int64_t, double>>& equity,
+    const vector<OrderEvent>& orders,
+    const vector<FillEvent>& fills
+) {
     if (equity.empty()) {
         throw std::runtime_error("Equity log is empty");
     }
     BacktestReport report;
+    report.initial_equity = equity.front().second;
     report.final_equity = equity.back().second;
+    report.net_pnl = report.final_equity - report.initial_equity;
     report.total_return = (equity.back().second/equity.front().second) -1;
    
     // compute volatility
@@ -146,14 +153,50 @@ BacktestReport compute_backtest_report(const vector<pair<int64_t, double>>& equi
     }
     report.max_drawdown = max_drawdown;
 
-    // compute number of trades
-    report.num_trades = trades.size();
+    // compute number of orders
+    report.num_orders = orders.size();
+    if (report.num_orders > 0) {
+        report.pnl_per_order = report.net_pnl / static_cast<double>(report.num_orders);
+    }
+
+    // Fee and notional stats from actual fills
+    for (const FillEvent& fill : fills) {
+        report.total_traded_notional += fill.quantity * fill.price;
+        report.total_fees_paid += fill.fees;
+    }
+    if (report.total_traded_notional > 0.0) {
+        report.implied_fee_rate = report.total_fees_paid / report.total_traded_notional;
+    }
+
+    // gross_pnl is before fees, net_pnl is after fees
+    report.gross_pnl = report.net_pnl + report.total_fees_paid;
+
+    // compare against standard exchange fee scenarios
+    constexpr double fee_10bps = 0.0010;  // 0.10%
+    constexpr double fee_7_5bps = 0.00075; // 0.075%
+    report.fees_if_10bps = report.total_traded_notional * fee_10bps;
+    report.fees_if_7_5bps = report.total_traded_notional * fee_7_5bps;
+    report.net_pnl_if_10bps = report.gross_pnl - report.fees_if_10bps;
+    report.net_pnl_if_7_5bps = report.gross_pnl - report.fees_if_7_5bps;
+
     return report;
 }
 
 void display_backtest_report(const BacktestReport& report) {
-    std::cout << "========= BACKTEST REPORT ========= \n\n";
+    std::cout << "========= BACKTEST REPORT STAGE 2 ========= \n\n";
+    std::cout << "Initial equity: " << report.initial_equity << std::endl;
     std::cout << "Final equity: " << report.final_equity << std::endl;
+    std::cout << "Gross PnL (before fees): " << report.gross_pnl << std::endl;
+    std::cout << "Net PnL (after fees): " << report.net_pnl << std::endl;
     std::cout << "Final return: " <<report.total_return << std::endl;
-    std::cout << "Max drawdown: " << report.max_drawdown << std::endl;  
+    std::cout << "Max drawdown: " << report.max_drawdown << std::endl;
+    std::cout << "Number of orders: " << report.num_orders << std::endl;
+    std::cout << "PnL per order: " << report.pnl_per_order << std::endl;
+    std::cout << "Total traded notional: " << report.total_traded_notional << std::endl;
+    std::cout << "Total fees paid (actual): " << report.total_fees_paid << std::endl;
+    std::cout << "Implied fee rate: " << report.implied_fee_rate * 100.0 << "%" << std::endl;
+    std::cout << "Fees if 0.10%: " << report.fees_if_10bps << std::endl;
+    std::cout << "Fees if 0.075%: " << report.fees_if_7_5bps << std::endl;
+    std::cout << "Net PnL if 0.10%: " << report.net_pnl_if_10bps << std::endl;
+    std::cout << "Net PnL if 0.075%: " << report.net_pnl_if_7_5bps << std::endl;
 }

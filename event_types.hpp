@@ -2,8 +2,8 @@
 #include <cstdint>
 #include <string>
 #include <optional>
-#include <cstdint>
 #include <variant>
+#include <vector>
 #include "trading_types.hpp"
 #include "tick.hpp"
 
@@ -18,6 +18,7 @@ struct OrderEvent {
     TradeSide side;
     std::optional<double> quantity;
     OrderType order_type = OrderType::Market;
+    std::optional<double> price; // signal price at which to fill the order or discard it 
 };
 
 struct FillEvent {
@@ -32,4 +33,8 @@ struct FillEvent {
 
 using Event = std::variant<MarketEvent, OrderEvent, FillEvent>;
 
+std::uint64_t generate_order_id();
+void reset_order_id_counter(std::uint64_t start_id = 1);
 
+std::vector<MarketEvent> ticks_to_mevents(const std::vector<Tick>& ticks);
+MarketEvent tick_to_mevent(const Tick& tick);

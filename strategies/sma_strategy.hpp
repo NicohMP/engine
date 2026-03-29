@@ -1,11 +1,13 @@
 #pragma once
 #include "../strategy.hpp"
 #include <deque>
+#include <optional>
 
 
 class  SMAStrategy : public Strategy {
     private:
-        // Parameters : windows sizes and target shares
+        // Parameters : asset ticker, windows sizes, target shares
+        std::string ticker;
         size_t slow_window;
         size_t fast_window;
         double long_target;
@@ -22,11 +24,7 @@ class  SMAStrategy : public Strategy {
         bool previous_fast_above_slow_ = false;
 
     public: 
-        SMAStrategy(size_t fast_window, size_t slow_window,double long_target,double short_target);
-
-        virtual Action on_tick(
-                const Tick& tick,
-                const Position& position,
-                const AccountState& account_state) override;
+        SMAStrategy(size_t fast_window, size_t slow_window,double long_target,double short_target, std::string ticker);
+        virtual std::optional<OrderEvent> on_market_event(const MarketEvent& mevent, const Portfolio& Portfolio) override;
  
 };

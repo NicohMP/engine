@@ -1,7 +1,7 @@
 #include "sma_strategy.hpp"
 #include <stdexcept>
 
-SMAStrategy::SMAStrategy(size_t fw, size_t sw, double lt, double st) : fast_window(fw), slow_window(sw), long_target(lt), short_target(st){
+SMAStrategy::SMAStrategy(size_t fw, size_t sw, double lt, double st, std::string t) : fast_window(fw), slow_window(sw), long_target(lt), short_target(st), ticker(t) {
     if (fast_window == 0){
         throw std::runtime_error("Window size can't be null");
     } else if (slow_window < fast_window) {
@@ -9,10 +9,10 @@ SMAStrategy::SMAStrategy(size_t fw, size_t sw, double lt, double st) : fast_wind
     }
 }
 
-Action SMAStrategy::on_tick(const Tick& tick, const Position& position,const AccountState& account_state) {
-    if (position.get_ticker() != tick.ticker) { // ensure tick corresponds to asset of interest
-        throw std::runtime_error("Tick ticker "+tick.ticker+" doesn't match position ticker "+position.get_ticker());
-    }
+std::optional<OrderEvent> SMAStrategy::on_market_event(const MarketEvent& mevent, const Portfolio& Portfolio) {
+    if (mevent.tick.ticker != ticker){return std::nullopt;}
+    const Position& pos = Portfolio.get_position(ticker);
+    const Tick& tick = mevent.tick;
     if (slow_buffer_.size() < slow_window) { // while not enough values, fill queues, updates sums and hold
         slow_sum_ += tick.close;
         slow_buffer_.push_back(tick.close);
@@ -22,7 +22,7 @@ Action SMAStrategy::on_tick(const Tick& tick, const Position& position,const Acc
             fast_sum_ -= fast_buffer_.front();
             fast_buffer_.pop_front();
         }
-        return Action::hold(tick.ticker);   
+        return std::nullopt;
     }
     
     // when there's enough values, we can safely update queues and sums
@@ -42,30 +42,37 @@ Action SMAStrategy::on_tick(const Tick& tick, const Position& position,const Acc
     }
 
 
-    const double current = position.get_quantity();
+    const double current = pos.get_quantity();
     if ((!previous_fast_above_slow_) && (fast_sma > slow_sma)) {
         previous_fast_above_slow_ = true;
         const double desired = long_target;
         const double delta = desired - current;
         if (delta > 0) {
-            return Action::buy(tick.ticker, delta);
+            std::uint64_t id = generate_order_id();
+            OrderEvent order{id, ticker, TradeSide::Buy, delta, OrderType::Market};
+            return order;
+        }if (delta < 0) {
+            std::uint64_t id = generate_order_id();
+            OrderEvent order{id, ticker, TradeSide::Sell, -delta, OrderType::Market};
+            return order;
         }
-        if (delta < 0) {
-            return Action::sell(tick.ticker, -delta);
-        }
-        return Action::hold(tick.ticker);
+        return std::nullopt;
     } else if (previous_fast_above_slow_ && (fast_sma < slow_sma)) {
         previous_fast_above_slow_ = false;
         const double desired = short_target;
         const double delta = desired - current;
         if (delta > 0) {
-            return Action::buy(tick.ticker, delta);
+            std::uint64_t id = generate_order_id();
+            OrderEvent order{id, ticker, TradeSide::Buy, delta, OrderType::Market};
+            return order;
         }
         if (delta < 0) {
-            return Action::sell(tick.ticker, -delta);
+            std::uint64_t id = generate_order_id();
+            OrderEvent order{id, ticker, TradeSide::Sell, -delta, OrderType::Market};
+            return order;
         }
-        return Action::hold(tick.ticker);
+        return std::nullopt;
     } else {
-        return Action::hold(tick.ticker);
+        return std::nullopt;
     }
 }

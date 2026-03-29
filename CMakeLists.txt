@@ -10,9 +10,12 @@ add_executable(engine
     main.cpp
     analytics.cpp
     parse_csv.cpp
+    event_types.cpp
     trading.cpp
     trading_types.cpp
     backtester.cpp
+    portfolio.cpp
+    execution_engine.cpp
     strategies/sma_strategy.cpp
 )
 

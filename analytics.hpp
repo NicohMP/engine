@@ -1,7 +1,7 @@
 // analytics.hpp
 #pragma once
 #include "tick.hpp"
-#include "trading_types.hpp"
+#include "event_types.hpp"
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -21,12 +21,27 @@ class SymbolSeries {
 
 
 struct BacktestReport {
+    double initial_equity = 0.0;
     double final_equity = 0.0;
+    double gross_pnl = 0.0; // before fees
+    double net_pnl = 0.0;   // after fees
     double total_return = 0.0;
     double volatility = 0.0;
     double max_drawdown = 0.0;
-    size_t num_trades = 0;
+    size_t num_orders = 0;
+    double pnl_per_order = 0.0;
+    double total_traded_notional = 0.0;
+    double total_fees_paid = 0.0;
+    double implied_fee_rate = 0.0;
+    double fees_if_10bps = 0.0;
+    double fees_if_7_5bps = 0.0;
+    double net_pnl_if_10bps = 0.0;
+    double net_pnl_if_7_5bps = 0.0;
 };
 
-BacktestReport compute_backtest_report(const std::vector<std::pair<int64_t, double>>& equity,const std::vector<Trade>& trades);
+BacktestReport compute_backtest_report(
+    const std::vector<std::pair<int64_t, double>>& equity,
+    const std::vector<OrderEvent>& orders,
+    const std::vector<FillEvent>& fills
+);
 void display_backtest_report(const BacktestReport& report);

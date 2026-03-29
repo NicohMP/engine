@@ -8,7 +8,7 @@ enum class TradeSide { Buy, Sell };
 
 enum class ActionType { Buy, Sell, Hold };
 
-enum class OrderType { Market, Limit };
+enum class OrderType { Market, Limit, Stop };
 
 struct Trade {
     int64_t timestamp;

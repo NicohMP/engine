@@ -9,7 +9,13 @@
 
 
 struct MarketEvent {
-    Tick tick;
+    int64_t timestamp;
+    std::string ticker;
+    double open;
+    double high;
+    double low;
+    double volume;
+    double close;
 };
 
 struct OrderEvent {

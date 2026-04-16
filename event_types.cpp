@@ -19,11 +19,27 @@ std::vector<MarketEvent> ticks_to_mevents(const std::vector<Tick>& ticks) {
     std::vector<MarketEvent> mevents;
     mevents.reserve(ticks.size());
     for (const Tick& tick : ticks) {
-        mevents.push_back(MarketEvent{tick});
+        mevents.push_back(MarketEvent{
+            tick.timestamp,
+            tick.ticker,
+            tick.open,
+            tick.high,
+            tick.low,
+            tick.volume,
+            tick.close
+        });
     }
     return mevents;
 }
 
 MarketEvent tick_to_mevent(const Tick& tick) {
-    return MarketEvent{tick};
+    return MarketEvent{
+        tick.timestamp,
+        tick.ticker,
+        tick.open,
+        tick.high,
+        tick.low,
+        tick.volume,
+        tick.close
+    };
 }

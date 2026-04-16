@@ -2,6 +2,7 @@
 #include "../strategy.hpp"
 #include <deque>
 #include <optional>
+#include <vector>
 
 
 class  SMAStrategy : public Strategy {
@@ -25,6 +26,6 @@ class  SMAStrategy : public Strategy {
 
     public: 
         SMAStrategy(size_t fast_window, size_t slow_window,double long_target,double short_target, std::string ticker);
-        virtual std::optional<OrderEvent> on_market_event(const MarketEvent& mevent, const Portfolio& Portfolio) override;
+        virtual std::optional<std::vector<OrderEvent>> on_market_event(const MarketEvent& mevent, const Portfolio& Portfolio) override;
  
 };

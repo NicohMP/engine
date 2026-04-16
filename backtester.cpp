@@ -23,14 +23,14 @@ Backtester::Backtester(
     }
 
     for (const MarketEvent& mevent : mevents) { // filter only markets relevant to specified ticker
-        if (mevent.tick.ticker == ticker_) {
+        if (mevent.ticker == ticker_) {
             mevents_.push_back(mevent);
         }
     }
     if (mevents_.empty()){ // check filtered market events isn't empty
         throw std::runtime_error("no data for ticker " + ticker_);
     }
-    std::sort(mevents_.begin(), mevents_.end(), [](const MarketEvent& a, const MarketEvent& b){return a.tick.timestamp < b.tick.timestamp;});
+    std::sort(mevents_.begin(), mevents_.end(), [](const MarketEvent& a, const MarketEvent& b){return a.timestamp < b.timestamp;});
     equity_.reserve(mevents_.size());
     
 }
@@ -50,16 +50,17 @@ void Backtester::run() {
                 const MarketEvent& market_event = std::get<MarketEvent>(event);
                 portfolio.update_prices(market_event); // update portfolio info with new market info
 
-                std::optional<OrderEvent> maybe_order = strategy_->on_market_event(market_event, portfolio); // apply strategy to possibly place new order
-                if (maybe_order) {
-                    OrderEvent order = *maybe_order;
-                    if (order.id == 0) {
-                        order.id = generate_order_id();
+                std::optional<std::vector<OrderEvent>> maybe_orders = strategy_->on_market_event(market_event, portfolio); // apply strategy to possibly place new orders
+                if (maybe_orders) {
+                    for (OrderEvent order : *maybe_orders) {
+                        if (order.id == 0) {
+                            order.id = generate_order_id();
+                        }
+                        if (!order.quantity || *order.quantity <= 0.0) {
+                            throw std::runtime_error("Invalid order quantity");
+                        }
+                        event_queue_.push_back(Event{order}); // if an order is passed, add to the queue
                     }
-                    if (!order.quantity || *order.quantity <= 0.0) {
-                        throw std::runtime_error("Invalid order quantity");
-                    }
-                    event_queue_.push_back(Event{order}); // if an order is passed, add to the queue
                 }
 
                 // Let queued orders get a chance to fill even when strategy emits no new order.
@@ -83,6 +84,6 @@ void Backtester::run() {
             }
         }
 
-        equity_.push_back({mevent.tick.timestamp, portfolio.total_equity()});
+        equity_.push_back({mevent.timestamp, portfolio.total_equity()});
     }
 }

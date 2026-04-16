@@ -18,13 +18,13 @@ void ExecutionEngine::make_fill(std::vector<FillEvent>& fills,const OrderEvent& 
     }
 
     const double fill_quantity = *order.quantity;
-    const double fill_price = mevent.tick.close; // Convention: all fills execute at current bar close.
+    const double fill_price = mevent.close; // Convention: all fills execute at current bar close.
     const double notional = fill_quantity * fill_price;
     const double fees = notional * fee_rate_;
 
     fills.push_back(FillEvent{
         order.id,
-        mevent.tick.timestamp,
+        mevent.timestamp,
         order.ticker,
         order.side,
         fill_quantity,
@@ -40,7 +40,7 @@ std::vector<FillEvent> ExecutionEngine::fill_orders(const MarketEvent& mevent) {
     still_pending.reserve(pending_orders.size());
 
     for (const OrderEvent& order : pending_orders) {
-        if (order.ticker != mevent.tick.ticker) { // Convention: this bar can only fill orders for its own symbol.
+        if (order.ticker != mevent.ticker) { // Convention: this bar can only fill orders for its own symbol.
             still_pending.push_back(order);
             continue;
         }
@@ -59,8 +59,8 @@ std::vector<FillEvent> ExecutionEngine::fill_orders(const MarketEvent& mevent) {
                 const double limit_price = *order.price;
                 const bool limit_hit =
                     // Convention: limit trigger uses bar range (high/low), then fills at bar close.
-                    ((order.side == TradeSide::Buy) && (mevent.tick.low <= limit_price)) ||
-                    ((order.side == TradeSide::Sell) && (mevent.tick.high >= limit_price));
+                    ((order.side == TradeSide::Buy) && (mevent.low <= limit_price)) ||
+                    ((order.side == TradeSide::Sell) && (mevent.high >= limit_price));
 
                 if (limit_hit) {
                     make_fill(fills, order, mevent);
@@ -76,8 +76,8 @@ std::vector<FillEvent> ExecutionEngine::fill_orders(const MarketEvent& mevent) {
                 }
                 const double stop_price = *order.price;
                 const bool stop_triggered =
-                    ((order.side == TradeSide::Buy) && (mevent.tick.high >= stop_price)) ||
-                    ((order.side == TradeSide::Sell) && (mevent.tick.low <= stop_price));
+                    ((order.side == TradeSide::Buy) && (mevent.high >= stop_price)) ||
+                    ((order.side == TradeSide::Sell) && (mevent.low <= stop_price));
 
                 if (stop_triggered) {
                     // Stage 2 convention: stop turns into a market fill on the trigger bar.

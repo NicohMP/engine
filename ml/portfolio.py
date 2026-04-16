@@ -15,8 +15,9 @@ class Position:
     def update(self, fill: FillEvent) -> None:
         if fill.ticker != self.ticker_:
             raise ValueError(
-                f"Fill ticker {fill.ticker} doesn't match position ticker {self.ticker_}")
-        if (fill.side == TradeSide.BUY):
+                f"Fill ticker {fill.ticker} doesn't match position ticker {self.ticker_}"
+            )
+        if fill.side == TradeSide.BUY:
             self.quantity_ += fill.quantity
         else:
             self.quantity_ -= fill.quantity
@@ -38,10 +39,31 @@ class Portfolio:
     def update_position(self, fill: FillEvent) -> None:
 
         if fill.ticker not in self.positions_by_ticker:
-            raise ValueError(
-                f"No position found in portfolio for ticker: {fill.ticker}")
+            # If positions doesn't exist yet, deduce sign of quantity, price, and create new Position instance
 
-        self.positions_by_ticker[fill.ticker].update(fill)
+            sign = 1 if (fill.side == TradeSide.BUY) else -1
+            new_position = Position(
+                ticker=fill.ticker, init_quantity=sign * fill.quantity
+            )
+            self.prices[fill.ticker] = fill.price
+            self.positions_by_ticker[fill.ticker] = new_position
+        else:
+            # Otherwise use built-in Position.update()
+            self.positions_by_ticker[fill.ticker].update(fill)
+
+        # Update portfolio cash
+        notional: float = fill.quantity * fill.price
+        if fill.side == TradeSide.BUY:
+            self.cash -= notional + fill.fees  # pay shares + fees
+        else:
+            self.cash += notional - fill.fees  # pay fees, get paid for sold shares
+
+    def create_position(self, fill: FillEvent) -> None:
+        if fill.ticker not in self.positions_by_ticker:
+            raise ValueError(
+                f"Position already exists for ticker: {fill.ticker}."
+                + "Use Portfolio.update_position() to update existing position"
+            )
 
         notional: float = fill.quantity * fill.price
         if fill.side == TradeSide.BUY:
@@ -61,23 +83,40 @@ class Portfolio:
     def position_qty(self, ticker: str) -> float:
         if ticker not in self.positions_by_ticker:
             raise KeyError(
-                f"No position for ticker {ticker} in the portfolio currently")
+                f"No position for ticker {ticker} in the portfolio currently"
+            )
         return self.positions_by_ticker[ticker].quantity_
 
     def quantities(self) -> Dict[str, float]:
-        return {t: self.positions_by_ticker[t].quantity_ for t in self.positions_by_ticker}
+        return {
+            t: self.positions_by_ticker[t].quantity_ for t in self.positions_by_ticker
+        }
 
     def price(self, ticker: str) -> float:
         if ticker not in self.prices:
             raise KeyError(
-                f"Prices for ticker {ticker} isn't currently followed in portfolio")
+                f"Prices for ticker {ticker} isn't currently followed in portfolio"
+            )
         return self.prices[ticker]
 
     def weights(self) -> Dict[str, float]:
-        return {t: self.positions_by_ticker[t].quantity_*self.prices[t]/self.equity() for t in self.positions_by_ticker}
+        return {
+            t: self.positions_by_ticker[t].quantity_ * self.prices[t] / self.equity()
+            for t in self.positions_by_ticker
+        }
 
     def gross_exposure(self) -> float:
-        return sum([abs(self.positions_by_ticker[t].quantity_*self.prices[t]) for t in self.positions_by_ticker])
+        return sum(
+            [
+                abs(self.positions_by_ticker[t].quantity_ * self.prices[t])
+                for t in self.positions_by_ticker
+            ]
+        )
 
     def net_exposure(self) -> float:
-        return sum([self.positions_by_ticker[t].quantity_*self.prices[t] for t in self.positions_by_ticker])
+        return sum(
+            [
+                self.positions_by_ticker[t].quantity_ * self.prices[t]
+                for t in self.positions_by_ticker
+            ]
+        )

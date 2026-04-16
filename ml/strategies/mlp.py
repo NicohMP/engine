@@ -7,7 +7,7 @@ from collections import deque
 
 from ..events import MarketEvent, OrderEvent
 from ..portfolio import Portfolio
-from ..data_ingestion import analytics as an
+from ..features import analytics as an
 from .base import Strategy, _build_order_on_notional
 
 

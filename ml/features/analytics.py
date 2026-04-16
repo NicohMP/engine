@@ -158,6 +158,45 @@ def volume_zscore(df: pd.DataFrame, window: int = 20) -> pd.Series:
     return (v - mu) / sigma.replace(0.0, np.nan)
 
 
+def _feature_window(window: int | None, name: str) -> int:
+    if window is None:
+        raise ValueError(f"{name} requires at least one window")
+    _validate_window(window)
+    return window
+
+
+def feature_return(df: pd.DataFrame, window: int | None) -> pd.Series:
+    return past_returns(df, horizon=_feature_window(window, "return"))
+
+
+def feature_log_return(df: pd.DataFrame, window: int | None) -> pd.Series:
+    window = _feature_window(window, "log_return")
+    return np.log(df["close"] / df["close"].shift(window))
+
+
+def feature_sma(df: pd.DataFrame, window: int | None) -> pd.Series:
+    return sma(df, window=_feature_window(window, "sma"))
+
+
+def feature_close_to_sma(df: pd.DataFrame, window: int | None) -> pd.Series:
+    return price_vs_sma(df, window=_feature_window(window, "close_to_sma"))
+
+
+def feature_volatility(df: pd.DataFrame, window: int | None) -> pd.Series:
+    ret_1d = past_returns(df, horizon=1)
+    return rolling_volatility(ret_1d, window=_feature_window(window, "volatility"))
+
+
+def feature_volume_zscore(df: pd.DataFrame, window: int | None) -> pd.Series:
+    return volume_zscore(df, window=_feature_window(window, "volume_zscore"))
+
+
+def feature_high_low_range(df: pd.DataFrame, window: int | None) -> pd.Series:
+    if window is not None:
+        raise ValueError("high_low_range does not accept windows")
+    return (df["high"] - df["low"]) / df["close"]
+
+
 FEATURE_COLUMNS = [
     "ret_1d",
     "logret_1d",

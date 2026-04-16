@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from enum import StrEnum
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List
+from typing import Callable, Dict, Iterable, List, Literal
 import re
+from dataclasses import dataclass
 
 import pandas as pd
 
@@ -12,6 +13,23 @@ from . import yahoo
 
 class SOURCE(StrEnum):
     YAHOO = "yahoo"
+
+
+@dataclass(frozen=True)
+class MissingRange:
+    start_ms: int
+    end_ms: int
+
+
+@dataclass(frozen=True)
+class Coverage:
+    ticker: str
+    source: str
+    start_ms: int | None
+    end_ms: int | None
+    rows: int
+    missing_ranges: tuple[MissingRange, ...]
+    # reason: str | None = None
 
 
 OHLCVLoader = Callable[..., pd.DataFrame]
@@ -41,24 +59,23 @@ class DataSource:
     ]
 
     DEFAULT_OHLCV_LOADERS: Dict[str, OHLCVLoader] = {
-        SOURCE.YAHOO: yahoo.load_ohlvc, }
+        SOURCE.YAHOO: yahoo.load_ohlvc,
+    }
 
     DEFAULT_OHLCV_PERIOD_BY_INTERVAL = {
-        "1d": "25y", "1h": "730d", "1m": "30d", }
+        "1d": "25y",
+        "1h": "730d",
+        "1m": "30d",
+    }
 
     DEFAULT_OHLCV_ROWS = 5000
 
     def __init__(self, data_dir: str | Path = "data_cache") -> None:
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
-        self._ohlcv_loaders: Dict[str, OHLCVLoader] = dict(
-            self.DEFAULT_OHLCV_LOADERS)
+        self._ohlcv_loaders: Dict[str, OHLCVLoader] = dict(self.DEFAULT_OHLCV_LOADERS)
 
-    def register_ohlcv_loader(self, source: str | SOURCE, loader: OHLCVLoader) -> None:
-        source_name = _normalize_source(source)
-        self._ohlcv_loaders[source_name] = loader
-
-    def load_ohlvc_raw(
+    def fetch_ohlvc_raw(
         self,
         *,
         tickers: Iterable[str],
@@ -74,7 +91,8 @@ class DataSource:
             loader = self._ohlcv_loaders[source_name]
         except KeyError as exc:
             raise ValueError(
-                f"No OHLCV loader registered for source '{source_name}'") from exc
+                f"No OHLCV loader registered for source '{source_name}'"
+            ) from exc
 
         raw = loader(
             tickers=tickers,
@@ -87,128 +105,252 @@ class DataSource:
         self._validate_ohlcv_loader_output(raw)
         return raw
 
+    def read_ohlvc(
+        self,
+        ticker: str,
+        source: SOURCE,
+        interval: str,
+        start: pd.Timestamp,
+        end: pd.Timestamp,
+        require_coverage: bool = True,
+    ) -> pd.DataFrame | None:
+        path = self._cache_path(ticker, source, "ohlvc", interval)
+
+        # If no file return None
+        if not path.is_file() or path.stat().st_size == 0:
+            return None
+        # If empty file return None
+        try:
+            cached = pd.read_parquet(path)
+        except Exception:
+            return None
+
+        cached = self._clean_ohlvc(cached)
+        cached = cached[cached["ticker"] == ticker.upper()]
+        # If ticker not in file return None
+        if cached.empty:
+            return None
+
+        start_ms = self._timestamp_to_ms(start)
+        end_ms = self._timestamp_to_ms(end)
+
+        if require_coverage:
+            slack_ms = _coverage_slack_ms(interval)
+            if (cached["timestamp"].min() - start_ms > slack_ms) or (
+                end_ms - cached["timestamp"].max() > slack_ms
+            ):
+                raise ValueError("Requested time range isn't covered in cache file")
+
+        return cached[
+            (cached["timestamp"] >= start_ms) & (cached["timestamp"] <= end_ms)
+        ].copy()
+
+    def write_ohlvc(self, data: pd.DataFrame, source: SOURCE, interval: str) -> None:
+        if interval not in self.DEFAULT_OHLCV_PERIOD_BY_INTERVAL:
+            raise ValueError(f"Interval {interval} not supported by DataSource")
+
+        data = self._clean_ohlvc(data)
+        source_name = _normalize_source(source)
+
+        for ticker in data["ticker"].unique():
+            # Check path and file parent exist, create parent if not
+            path: Path = self._cache_path(ticker, source_name, "ohlvc", interval)
+            path.parent.mkdir(parents=True, exist_ok=True)
+
+            ticker_data: pd.DataFrame = data[data["ticker"] == ticker].copy()
+            if path.is_file():
+                cached = self._clean_ohlvc(pd.read_parquet(path))
+                cached = cached[cached["ticker"] == ticker]
+                if not cached.empty:
+                    ticker_data = (
+                        pd.concat([cached, ticker_data], ignore_index=True)
+                        .drop_duplicates(["timestamp", "ticker"], keep="last")
+                        .sort_values(["timestamp", "ticker"])
+                        .reset_index(drop=True)
+                    )
+            ticker_data.to_parquet(path, index=False)
+
+    def coverage_ohlcv(
+        self,
+        *,
+        tickers: Iterable[str],
+        start: str | pd.Timestamp,
+        end: str | pd.Timestamp,
+        interval: str = "1d",
+        source: str | SOURCE = SOURCE.YAHOO,
+    ) -> list[Coverage]:
+        # Checks and normalization
+        if interval not in self.DEFAULT_OHLCV_PERIOD_BY_INTERVAL:
+            raise ValueError(f"unsupported interval: {interval}")
+
+        symbols = [str(t).strip().upper() for t in tickers]
+        symbols = [t for t in symbols if t]
+        if not symbols:
+            raise ValueError("tickers must be non-empty")
+
+        source_name = _normalize_source(source)
+        req_start_ms = self._timestamp_to_ms(start)
+        req_end_ms = self._timestamp_to_ms(end)
+
+        covs: list[Coverage] = []
+
+        for ticker in symbols:
+            path = self._cache_path(ticker, source_name, "ohlvc", interval)
+            rows = 0
+            cache_start_ms = None
+            cache_end_ms = None
+            missing = [MissingRange(req_start_ms, req_end_ms)]
+
+            if path.is_file() and path.stat().st_size > 0:
+                try:
+                    cached = self._clean_ohlvc(pd.read_parquet(path))
+                    cached = cached[cached["ticker"] == ticker]
+                except Exception:
+                    cached = pd.DataFrame()
+
+                if not cached.empty:
+                    rows = len(cached)
+                    cache_start_ms = int(cached["timestamp"].min())
+                    cache_end_ms = int(cached["timestamp"].max())
+                    missing = []
+                    slack_ms = _coverage_slack_ms(interval)
+
+                    if (
+                        cache_end_ms + slack_ms < req_start_ms
+                        or cache_start_ms - slack_ms > req_end_ms
+                    ):
+                        missing.append(MissingRange(req_start_ms, req_end_ms))
+                    else:
+                        if cache_start_ms - req_start_ms > slack_ms:
+                            missing.append(MissingRange(req_start_ms, cache_start_ms))
+                        if req_end_ms - cache_end_ms > slack_ms:
+                            missing.append(MissingRange(cache_end_ms, req_end_ms))
+
+            covs.append(
+                Coverage(
+                    ticker=ticker,
+                    source=source_name,
+                    start_ms=cache_start_ms,
+                    end_ms=cache_end_ms,
+                    rows=rows,
+                    missing_ranges=tuple(missing),
+                )
+            )
+
+        return covs
+
+    def ensure_ohlcv(
+        self,
+        *,
+        tickers: Iterable[str],
+        start: str | pd.Timestamp,
+        end: str | pd.Timestamp,
+        interval: str = "1d",
+        source: str | SOURCE = SOURCE.YAHOO,
+        auto_adjust: bool = False,
+    ) -> None:
+        source_name = _normalize_source(source)
+        coverages = self.coverage_ohlcv(
+            tickers=tickers, start=start, end=end, interval=interval, source=source_name
+        )
+        fresh_list: List[pd.DataFrame] = []
+        for cov in coverages:
+            for mrange in cov.missing_ranges:
+                s, e = _ms_to_timestamp(mrange.start_ms), _ms_to_timestamp(
+                    mrange.end_ms
+                )
+                fresh = self.fetch_ohlvc_raw(
+                    tickers=[cov.ticker],
+                    start=s,
+                    end=e,
+                    interval=interval,
+                    source=source_name,
+                )
+                fresh_list.append(self._clean_ohlvc(fresh))
+        if not fresh_list:
+            return
+        data = pd.concat(fresh_list)
+        self.write_ohlvc(data=data, source=source_name, interval=interval)
+
     def get_ohlvc(
         self,
         *,
         tickers: Iterable[str],
-        start: str | pd.Timestamp | None = None,
-        end: str | pd.Timestamp | None = None,
-        period: str | None = None,
+        start: str | pd.Timestamp,
+        end: str | pd.Timestamp,
         interval: str = "1d",
         source: str | SOURCE = SOURCE.YAHOO,
         auto_adjust: bool = False,
-        use_cache: bool = True,
+        use_cache: Literal["cache_only", "refresh_missing", "bypass"] = "cache_only",
     ) -> pd.DataFrame:
-        """Retriveve financial data for an asset, from a specified source.
-        If `use_cache` is True, for each (ticker,interval,source) in the list, the method first checks if it's already stored in the cache.
-        If so the data come from the cache, otherwise the source is called. 
 
-        Args:
-            tickers (Iterable[str]): List of assets of interest
-            start (str | pd.Timestamp | None, optional): Starting date of period of interest. Defaults to None.
-            end (str | pd.Timestamp | None, optional): End date of period of interest. Defaults to None.
-            period (str | None, optional): Period of interest. Defaults to None.
-            interval (str, optional): Interval of time between contiguous info . Defaults to "1d".
-            source (str | SOURCE, optional): Source of info. Defaults to SOURCE.YAHOO (yfinance).
-            auto_adjust (bool, optional): Wether to also retrieve the auto-adjusted close price. Defaults to False.
-
-        Returns:
-            pd.DataFrame: Dataframe with requested open,high,low,volume,close prices over the requested period 
-        """
         if interval not in self.DEFAULT_OHLCV_PERIOD_BY_INTERVAL:
-            raise ValueError(
-                f"Interval {interval} not supported by DataSource")
+            raise ValueError(f"Interval {interval} not supported by DataSource")
         symbols = [str(ticker).strip().upper() for ticker in tickers]
         symbols = [ticker for ticker in symbols if ticker]
         if not symbols:
             raise ValueError("tickers must be a non-empty iterable of symbols")
+        valid_policies = {"cache_only", "refresh_missing", "bypass"}
+        if use_cache not in valid_policies:
+            raise ValueError(f"Unknown cache policy: {use_cache}")
 
-        hits: list[pd.DataFrame] = []
-        missing: list[str] = []
-        can_use_cache = use_cache and period is None and start is not None and end is not None
-
-        if can_use_cache:
-            for ticker in symbols:
-                cached = self._load_ohlvc_from_cache(
-                    ticker=ticker,
-                    source=source,
-                    interval=interval,
-                    start=start,
-                    end=end,
-                )
-                if cached is None:
-                    missing.append(ticker)
-                else:
-                    hits.append(cached)
-        else:
-            missing = symbols
-
-        if missing:
-            raw = self.load_ohlvc_raw(
-                tickers=missing,
+        if use_cache == "bypass":
+            data = self.fetch_ohlvc_raw(
+                tickers=symbols,
                 start=start,
                 end=end,
-                period=period,
                 interval=interval,
                 source=source,
                 auto_adjust=auto_adjust,
             )
-            fresh = self._clean_ohlvc(raw)
-            hits.append(fresh)
+            return (
+                self._clean_ohlvc(data)
+                .sort_values(["timestamp", "ticker"])
+                .reset_index(drop=True)
+            )
 
-        if not hits:
-            return pd.DataFrame(columns=self.REQUIRED_OHLCV_COLUMNS)
+        if use_cache == "refresh_missing":
+            self.ensure_ohlcv(
+                tickers=symbols,
+                start=start,
+                end=end,
+                interval=interval,
+                source=source,
+                auto_adjust=auto_adjust,
+            )
 
+        data = []
+        for symbol in symbols:
+            cached = self.read_ohlvc(
+                ticker=symbol,
+                source=source,
+                interval=interval,
+                start=start,
+                end=end,
+                require_coverage=True,
+            )
+            if cached is None:
+                raise ValueError(f"No cached OHLCV data for {symbol}")
+            data.append(cached)
         return (
-            pd.concat(hits, ignore_index=True)
-            .sort_values(["timestamp", "ticker"])
-            .reset_index(drop=True)
+            pd.concat(data).sort_values(["timestamp", "ticker"]).reset_index(drop=True)
         )
-
-    def update_ohlvc(self, tickers: List[str], source: SOURCE, interval: str):
-        if interval not in self.DEFAULT_OHLCV_PERIOD_BY_INTERVAL:
-            raise ValueError(
-                f"Interval {interval} not supported by DataSource")
-        tickers = [str(ticker).strip().upper() for ticker in tickers]
-        tickers = [ticker for ticker in tickers if ticker]
-        if not tickers:
-            raise ValueError("tickers must be a non-empty iterable of symbols")
-
-        source_name = _normalize_source(source)
-
-        try:
-            loader = self._ohlcv_loaders[source_name]
-        except KeyError as exc:
-            raise ValueError(
-                f"No OHLCV loader registered for source '{source_name}'") from exc
-
-        raw = loader(
-            tickers=tickers, period=self.DEFAULT_OHLCV_PERIOD_BY_INTERVAL[interval], interval=interval)
-        clean = self._clean_ohlvc(raw)
-
-        for ticker in tickers:
-            path: Path = self._cache_path(
-                ticker, source_name, "ohlvc", interval)
-            ticker_clean = clean[clean["ticker"] == ticker.upper()]
-            ticker_clean = ticker_clean.sort_values(
-                "timestamp").tail(self.DEFAULT_OHLCV_ROWS)
-            path.parent.mkdir(parents=True, exist_ok=True)
-            ticker_clean.to_parquet(path, index=False)
-        return clean
 
     def to_panel(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Convert canonical flat OHLCV data into a (timestamp, ticker) MultiIndex panel.
         """
         self._validate_canonical_ohlcv(df)
-        panel = (
-            df.copy()
-            .set_index(["timestamp", "ticker"])
-            .sort_index()
-        )
+        panel = df.copy().set_index(["timestamp", "ticker"]).sort_index()
         return panel
 
-    def _cache_path(self, ticker: str, source: str | SOURCE, dataset_type: str, interval: str,) -> Path:
+    def _cache_path(
+        self,
+        ticker: str,
+        source: str | SOURCE,
+        dataset_type: str,
+        interval: str,
+    ) -> Path:
         return (
             self.data_dir
             / _normalize_source(source)
@@ -240,8 +382,7 @@ class DataSource:
         def valid_ratio(candidate: pd.Series) -> float:
             return candidate.between(_MS_MIN_2000, _MS_MAX_2100).mean()
 
-        best_name = max(
-            candidates, key=lambda name: valid_ratio(candidates[name]))
+        best_name = max(candidates, key=lambda name: valid_ratio(candidates[name]))
         best = candidates[best_name]
         if valid_ratio(best) >= 0.95:
             return best.round()
@@ -250,12 +391,9 @@ class DataSource:
     def _validate_ohlcv_loader_output(self, df: pd.DataFrame) -> None:
         if not isinstance(df, pd.DataFrame):
             raise TypeError("OHLCV loader must return a pandas.DataFrame")
-        missing = [
-            col for col in self.REQUIRED_OHLCV_COLUMNS if col not in df.columns]
+        missing = [col for col in self.REQUIRED_OHLCV_COLUMNS if col not in df.columns]
         if missing:
-            raise ValueError(
-                f"OHLCV loader output missing required columns: {missing}"
-            )
+            raise ValueError(f"OHLCV loader output missing required columns: {missing}")
 
     def _validate_canonical_ohlcv(self, df: pd.DataFrame) -> None:
         self._validate_ohlcv_loader_output(df)
@@ -263,7 +401,8 @@ class DataSource:
             raise ValueError("Canonical OHLCV dataframe is empty")
         if df.duplicated(["timestamp", "ticker"]).any():
             raise ValueError(
-                "Canonical OHLCV dataframe contains duplicate (timestamp, ticker) rows")
+                "Canonical OHLCV dataframe contains duplicate (timestamp, ticker) rows"
+            )
 
     def _clean_ohlvc(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -282,8 +421,7 @@ class DataSource:
         out["ticker"] = out["ticker"].astype(str).str.strip().str.upper()
 
         out = out.dropna(
-            subset=["timestamp", "ticker", "open",
-                    "high", "low", "close", "volume"]
+            subset=["timestamp", "ticker", "open", "high", "low", "close", "volume"]
         )
         out["timestamp"] = out["timestamp"].round().astype("int64")
 
@@ -304,44 +442,6 @@ class DataSource:
         self._validate_canonical_ohlcv(out)
         return out
 
-    def _load_ohlvc_from_cache(
-        self,
-        ticker: str,
-        source: SOURCE,
-        interval: str,
-        start: pd.Timestamp,
-        end: pd.Timestamp,
-    ) -> pd.DataFrame | None:
-        path = self._cache_path(ticker, source, "ohlvc", interval)
-
-        if not path.is_file() or path.stat().st_size == 0:
-            return None
-
-        try:
-            cached = pd.read_parquet(path)
-        except Exception:
-            return None
-
-        cached = self._clean_ohlvc(cached)
-        cached = cached[cached["ticker"] == ticker.upper()]
-
-        if cached.empty:
-            return None
-
-        start_ms = self._timestamp_to_ms(start)
-        end_ms = self._timestamp_to_ms(end)
-
-        if cached["timestamp"].min() > start_ms:
-            return None
-
-        if cached["timestamp"].max() < end_ms:
-            return None
-
-        return cached[
-            (cached["timestamp"] >= start_ms)
-            & (cached["timestamp"] <= end_ms)
-        ].copy()
-
 
 def _safe_path_part(value: object) -> str:
     text = str(value).strip().upper()
@@ -353,3 +453,17 @@ def _normalize_source(source: str | SOURCE) -> str:
     if isinstance(source, SOURCE):
         return source.value
     return str(source).strip().lower()
+
+
+def _ms_to_timestamp(ms: int) -> pd.Timestamp:
+    return pd.to_datetime(ms, unit="ms", utc=True)
+
+
+def _coverage_slack_ms(interval: str) -> int:
+    if interval == "1d":
+        return int(pd.Timedelta(days=7) // pd.Timedelta(milliseconds=1))
+    if interval == "1h":
+        return int(pd.Timedelta(days=3) // pd.Timedelta(milliseconds=1))
+    if interval == "1m":
+        return int(pd.Timedelta(days=1) // pd.Timedelta(milliseconds=1))
+    return 0

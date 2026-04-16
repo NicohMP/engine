@@ -4,8 +4,10 @@
 #include <optional>
 #include <variant>
 #include <vector>
-#include "trading_types.hpp"
 #include "tick.hpp"
+
+enum class TradeSide { Buy, Sell };
+enum class OrderType { Market, Limit, Stop };
 
 
 struct MarketEvent {

@@ -7,12 +7,12 @@
 #include "analytics.hpp"
 #include "portfolio.hpp"
 #include "strategy.hpp"
-#include "strategies/sma_strategy.hpp"
+#include "sma_strategy.hpp"
 #include "backtester.hpp"
 
 int main() {
     std::string ticker = "0GFDUSD";
-    std::vector<Tick> ticks =  parse_kline_csv("0GFDUSD-1m-2025-10.csv", ticker);
+    std::vector<Tick> ticks =  parse_kline_csv("ml/data/0GFDUSD-1m-2025-10.csv", ticker);
     std::vector<MarketEvent> mevents = ticks_to_mevents(ticks);
     auto strat = std::make_unique<SMAStrategy>(20,100,-50.0,50.0,ticker);
     Position pos(ticker, 0.0);

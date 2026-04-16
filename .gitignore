@@ -12,3 +12,20 @@ Makefile
 .DS_Store
 EOF
 .vscode/*
+.env/
+ml/data/
+ml/notebooks/
+
+# Python bytecode/cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+
+# C++ / CMake build artifacts
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile

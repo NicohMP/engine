@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include "trading_types.hpp"
+#include "event_types.hpp"
 
 class Position {
     private:
@@ -12,5 +12,5 @@ class Position {
         Position(const std::string& ticker, double initial_quantity);
         double get_quantity() const { return quantity; }
         std::string get_ticker() const { return ticker; }
-        void update(const Trade& trade);
+        void update(const FillEvent& fevent);
 };

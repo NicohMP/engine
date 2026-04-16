@@ -58,19 +58,6 @@ class Portfolio:
         else:
             self.cash += notional - fill.fees  # pay fees, get paid for sold shares
 
-    def create_position(self, fill: FillEvent) -> None:
-        if fill.ticker not in self.positions_by_ticker:
-            raise ValueError(
-                f"Position already exists for ticker: {fill.ticker}."
-                + "Use Portfolio.update_position() to update existing position"
-            )
-
-        notional: float = fill.quantity * fill.price
-        if fill.side == TradeSide.BUY:
-            self.cash -= notional + fill.fees  # pay shares + fees
-        else:
-            self.cash += notional - fill.fees  # pay fees, get paid for sold shares
-
     def equity(self) -> float:
         """Compute total equity from updated prices and internal positions"""
         eq = float(self.cash)

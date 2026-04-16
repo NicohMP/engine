@@ -6,7 +6,7 @@
 #include "parse_csv.hpp"
 #include "analytics.hpp"
 #include "portfolio.hpp"
-#include "strategy.hpp"
+#include "base.hpp"
 #include "sma_strategy.hpp"
 #include "backtester.hpp"
 

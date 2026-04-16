@@ -11,14 +11,14 @@ class Strategy:
         return None
 
 
-def _build_order_on_notional(
+def _build_order_to_target_notional(
     ticker: str,
     price: float,
     target_notional: float,
     signal: float,
     current_quantity: float,
 ) -> Optional[OrderEvent]:
-    """_summary_
+    """Build a
 
     Args:
         ticker (str): _description_

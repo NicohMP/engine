@@ -1,5 +1,5 @@
 #pragma once
-#include "strategy.hpp"
+#include "base.hpp"
 #include "portfolio.hpp"
 #include "event_types.hpp"
 #include "execution_engine.hpp"

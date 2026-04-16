@@ -1,5 +1,5 @@
 #pragma once
-#include "strategy.hpp"
+#include "base.hpp"
 #include <deque>
 #include <optional>
 #include <vector>

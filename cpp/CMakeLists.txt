@@ -15,6 +15,7 @@ add_executable(engine
     portfolio/portfolio.cpp
     portfolio/position.cpp
     strategy/analytics.cpp
+    strategy/base.cpp
     strategy/sma_strategy.cpp
 )
 

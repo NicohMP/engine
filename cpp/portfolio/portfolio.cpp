@@ -49,6 +49,10 @@ const Position& Portfolio::get_position(const std::string& ticker) const {
     return it->second;
 }
 
+const std::unordered_map<std::string,Position>& Portfolio::positions() const {
+    return positions_by_ticker;
+}
+
 double Portfolio::total_equity() const {
     double eq = cash;
     for (const std::pair<const std::string, Position>& pair : positions_by_ticker) {
@@ -109,3 +113,15 @@ double Portfolio::price(const std::string& ticker) const {
     return t_price;
 }
 
+bool Portfolio::has_price(const std::string& ticker) const {
+    auto it = prices.find(ticker);
+    bool res =  (it == prices.end());
+    return !res;
+}
+
+
+bool Portfolio::has_position(const std::string& ticker) const {
+    auto it = positions_by_ticker.find(ticker);
+    bool res = (it == positions_by_ticker.end()); // false if the key exists
+    return !res;
+}

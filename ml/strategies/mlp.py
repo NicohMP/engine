@@ -8,7 +8,7 @@ from collections import deque
 from ..events import MarketEvent, OrderEvent
 from ..portfolio import Portfolio
 from ..features import analytics as an
-from .base import Strategy, _build_order_on_notional
+from .base import Strategy, _build_order_to_target_notional
 
 
 class DumbMLPStrategy(Strategy):
@@ -22,23 +22,20 @@ class DumbMLPStrategy(Strategy):
         if len(universe) == 0:
             raise ValueError("universe must be non-empty")
         if target_notional <= 0.0:
-            raise ValueError(
-                f"target_notional must be > 0, got {target_notional}")
+            raise ValueError(f"target_notional must be > 0, got {target_notional}")
 
         self.model = mlp
         self.model.eval()
         self.universe = universe
         self.target_not = float(target_notional)
-        self.windows: Dict[str, deque] = {
-            t: deque(maxlen=30) for t in self.universe}
+        self.windows: Dict[str, deque] = {t: deque(maxlen=30) for t in self.universe}
 
         super().__init__()
 
     def rolling_window_features(self, ticker: str) -> Optional[pd.Series]:
         "Builds the rolling window features for the MarketEvent features"
         if ticker not in self.windows:
-            raise KeyError(
-                f"Ticker : {ticker} is not followed by rolling windows")
+            raise KeyError(f"Ticker : {ticker} is not followed by rolling windows")
         if len(self.windows[ticker]) < 30:
             return None
 
@@ -53,8 +50,7 @@ class DumbMLPStrategy(Strategy):
         # Risk / quality features
         g["vol_5d"] = an.rolling_volatility(g["ret_1d"], window=5)
         g["vol_20d"] = an.rolling_volatility(g["ret_1d"], window=20)
-        g["sharpe_20d"] = an.rolling_sharpe(
-            g["ret_1d"], window=20, annualized=True)
+        g["sharpe_20d"] = an.rolling_sharpe(g["ret_1d"], window=20, annualized=True)
 
         # Trend / mean-reversion features
         g["sma_ratio_5_20"] = an.sma_ratio(g, fast=5, slow=20)
@@ -68,22 +64,26 @@ class DumbMLPStrategy(Strategy):
             return None
         return out
 
-    def on_market_event(self, mevent: MarketEvent, portfolio: Portfolio) -> Optional[List[OrderEvent]]:
+    def on_market_event(
+        self, mevent: MarketEvent, portfolio: Portfolio
+    ) -> Optional[List[OrderEvent]]:
         # Check if ticker is considered by the strategy
         if mevent.ticker not in self.universe:
             return None
         if mevent.close <= 0.0:
             raise ValueError(f"mevent.close must be > 0, got {mevent.close}")
         # Add tick to rolling windows
-        self.windows[mevent.ticker].append({
-            "timestamp": mevent.timestamp,
-            "ticker": mevent.ticker,
-            "open": mevent.open,
-            "high": mevent.high,
-            "low": mevent.low,
-            "close": mevent.close,
-            "volume": mevent.volume,
-        })
+        self.windows[mevent.ticker].append(
+            {
+                "timestamp": mevent.timestamp,
+                "ticker": mevent.ticker,
+                "open": mevent.open,
+                "high": mevent.high,
+                "low": mevent.low,
+                "close": mevent.close,
+                "volume": mevent.volume,
+            }
+        )
 
         feat = self.rolling_window_features(mevent.ticker)
         if feat is None:
@@ -104,11 +104,15 @@ class DumbMLPStrategy(Strategy):
             return None
 
         if mevent.ticker not in portfolio.positions_by_ticker:
-            raise KeyError(
-                f"Ticker {mevent.ticker} not found in portfolio positions")
+            raise KeyError(f"Ticker {mevent.ticker} not found in portfolio positions")
         target_quantity = portfolio.positions_by_ticker[mevent.ticker].quantity_
-        order = _build_order_on_notional(
-            ticker=mevent.ticker, price=mevent.close, signal=signal, target_notional=self.target_not, current_quantity=target_quantity)
+        order = _build_order_to_target_notional(
+            ticker=mevent.ticker,
+            price=mevent.close,
+            signal=signal,
+            target_notional=self.target_not,
+            current_quantity=target_quantity,
+        )
         if order is None:
             return None
         return [order]

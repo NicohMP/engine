@@ -1,10 +1,8 @@
 from typing import List, Optional
-
 import numpy as np
-
 from ..events import MarketEvent, OrderEvent
 from ..portfolio import Portfolio
-from .base import Strategy, _build_order_on_notional
+from .base import Strategy, _build_order_to_target_notional
 
 
 class RandomStrategy(Strategy):
@@ -27,12 +25,12 @@ class RandomStrategy(Strategy):
             probs = np.asarray(probabilities, dtype=float)
             if probs.shape != (3,):
                 raise ValueError(
-                    f"probabilities must have length 3, got shape {probs.shape}")
+                    f"probabilities must have length 3, got shape {probs.shape}"
+                )
             if (probs < 0.0).any():
                 raise ValueError("probabilities must be non-negative")
             if not np.isclose(probs.sum(), 1.0):
-                raise ValueError(
-                    f"probabilities must sum to 1.0, got {probs.sum()}")
+                raise ValueError(f"probabilities must sum to 1.0, got {probs.sum()}")
 
         self.probs = probs
         self.universe = universe
@@ -41,7 +39,9 @@ class RandomStrategy(Strategy):
 
         super().__init__()
 
-    def on_market_event(self, mevent: MarketEvent, portfolio: Portfolio) -> Optional[List[OrderEvent]]:
+    def on_market_event(
+        self, mevent: MarketEvent, portfolio: Portfolio
+    ) -> Optional[List[OrderEvent]]:
         if mevent.ticker not in self.universe:
             return None
         if mevent.close <= 0.0:
@@ -51,8 +51,13 @@ class RandomStrategy(Strategy):
         if signal == 0:
             return None
         target_quantity = portfolio.position_qty(ticker=mevent.ticker)
-        order = _build_order_on_notional(
-            ticker=mevent.ticker, price=mevent.close, signal=signal, target_notional=self.target_not, current_quantity=target_quantity)
+        order = _build_order_to_target_notional(
+            ticker=mevent.ticker,
+            price=mevent.close,
+            signal=signal,
+            target_notional=self.target_not,
+            current_quantity=target_quantity,
+        )
         if order is None:
             return None
         return [order]

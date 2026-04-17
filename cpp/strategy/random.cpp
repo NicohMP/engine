@@ -54,7 +54,7 @@ std::optional<std::vector<OrderEvent>> RandomStrategy::on_market_event(const Mar
     }
     double current_qty = 0.0;
     if (portfolio.has_position(mevent.ticker)){
-        double current_qty = portfolio.position_qty(mevent.ticker);
+        current_qty = portfolio.position_qty(mevent.ticker);
     }
     std::optional<OrderEvent> order = build_order_to_target_notional(
         mevent.ticker,mevent.close,signal*target_not_,current_qty);

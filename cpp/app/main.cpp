@@ -9,7 +9,7 @@
 #include "portfolio.hpp"
 #include "base.hpp"
 #include "sma.hpp"
-#include "risk/risk_manager.hpp"
+#include "risk/simple.hpp"
 #include "buy_and_hold.hpp"
 #include "random.hpp"
 #include "backtester.hpp"
@@ -37,7 +37,7 @@ int main() {
         RiskLimits limits;
         limits.max_net_exposure = 1.0;    // if you want random orders to pass more often
         limits.max_gross_exposure = 2.0;
-        RiskManager risk_manager(limits);
+        auto risk_manager = std::make_shared<SimpleRiskManager>(limits);
 
         Backtester backtester(mevents, strat, portfolio);
         backtester.run();

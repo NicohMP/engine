@@ -1,6 +1,6 @@
 #include "backtester.hpp"
 #include "execution_engine.hpp"
-#include "risk/risk_manager.hpp"
+#include "risk/base.hpp"
 #include <algorithm>
 #include <stdexcept>
 #include <optional>
@@ -11,7 +11,7 @@ Backtester::Backtester(
     const std::vector<MarketEvent>& mevents,
     std::shared_ptr<Strategy> strategy,
     Portfolio init_portfolio,
-    std::optional<RiskManager> risk_manager,
+    std::shared_ptr<RiskManagerBase> risk_manager,
     double fee_rate
     ): 
     portfolio(std::move(init_portfolio)),
@@ -41,7 +41,7 @@ Backtester::Backtester(
         mevents,
         std::move(strategy),
         std::move(init_portfolio),
-        std::nullopt,
+        nullptr, // now that we use a shared_ptr, the None equivalent is nullptr
         fee_rate
     ) {}
 

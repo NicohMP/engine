@@ -3,7 +3,7 @@
 #include "portfolio.hpp"
 #include "event_types.hpp"
 #include "execution_engine.hpp"
-#include "risk/risk_manager.hpp"
+#include "risk/base.hpp"
 #include <vector>
 #include <deque>
 #include <string>
@@ -25,7 +25,7 @@ class Backtester {
 
         std::vector<MarketEvent> mevents_;
         Portfolio portfolio;
-        std::optional<RiskManager> risk_manager_;
+        std::shared_ptr<RiskManagerBase> risk_manager_; // shared pointer is automatically nullptr when nothig is passed so no need for std::optional<> anymore
         std::shared_ptr<Strategy> strategy_;
         ExecutionEngine execution_engine_;
         std::deque<Event> event_queue_;
@@ -39,7 +39,7 @@ class Backtester {
             const std::vector<MarketEvent>& mevents,
             std::shared_ptr<Strategy> strategy,
             Portfolio portfolio,
-            std::optional<RiskManager> risk_manager = std::nullopt,
+            std::shared_ptr<RiskManagerBase> risk_manager = nullptr,
             double fee_rate = kFeeRateStandard
         );
         Backtester(

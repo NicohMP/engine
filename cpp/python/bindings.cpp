@@ -10,8 +10,11 @@
 #include "portfolio/position.hpp"
 #include "portfolio/portfolio.hpp"
 #include "strategy/random.hpp"
+#include "strategy/base.hpp"
 #include "backtest/backtester.hpp"
-
+#include "execution/execution_engine.hpp"
+#include "risk/base.hpp"
+#include "risk/simple.hpp"
 
 // Short alias so we can write `py::...` instead of `pybind11::...`.
 // This is a common pybind11 convention.
@@ -37,6 +40,24 @@ class PyStrategy : public Strategy, public py::trampoline_self_life_support {
                 portfolio);
             }
         };
+
+class PyRiskManager : public RiskManagerBase, public py::trampoline_self_life_support{
+    public:
+        using RiskManagerBase::RiskManagerBase;
+        std::optional<std::vector<OrderEvent>> accept_order_batch(
+        const std::vector<OrderEvent>& orders,
+        const Portfolio& portfolio
+            )const override{
+        PYBIND11_OVERRIDE_PURE(
+            std::optional<std::vector<OrderEvent>>,
+            RiskManagerBase,
+            accept_order_batch,
+            orders,
+            portfolio);
+    }
+};
+
+
 
 // This macro creates the Python extension module.
 //
@@ -168,6 +189,10 @@ PYBIND11_MODULE(engine_cpp, m) {
         .def("net_exposure", &Portfolio::net_exposure);
 
 
+    py::class_<ExecutionEngine>(m, "ExecutionEngine")
+    .def(py::init<double>(), py::arg("fee_rate"))
+    .def("pass_order", &ExecutionEngine::pass_order, py::arg("order"))
+    .def("fill_orders", &ExecutionEngine::fill_orders, py::arg("market_event"));
 
     
     py::class_<Strategy, PyStrategy, py::smart_holder>(m, "Strategy")
@@ -178,8 +203,7 @@ PYBIND11_MODULE(engine_cpp, m) {
             py::arg("mevent"),
             py::arg("portfolio")
         );
-        
-
+    
     py::class_<RandomStrategy,Strategy, py::smart_holder>(m,"RandomStrategy")
         .def(
             py::init<std::vector<std::string>,
@@ -197,6 +221,40 @@ PYBIND11_MODULE(engine_cpp, m) {
             py::arg("portfolio")
         );
 
+    py::class_<RiskManagerBase, PyRiskManager, py::smart_holder>(m,"RiskManagerBase")
+        .def(py::init<>())
+        .def(
+            "accept_order_batch",
+            &RiskManagerBase::accept_order_batch,
+            py::arg("orders"),
+            py::arg("portfolio")
+        );
+
+    py::class_<RiskLimits>(m, "RiskLimits")
+    .def(py::init<>())
+    .def_readwrite("max_position_weight", &RiskLimits::max_position_weight)
+    .def_readwrite("max_gross_exposure", &RiskLimits::max_gross_exposure)
+    .def_readwrite("max_net_exposure", &RiskLimits::max_net_exposure)
+    .def_readwrite("max_nb_positions", &RiskLimits::max_nb_positions);
+    
+    py::class_<SimpleRiskManager, RiskManagerBase, py::smart_holder>(m, "SimpleRiskManager")
+    .def(
+        py::init<RiskLimits>(),
+        py::arg("limits")
+    )
+    .def(
+        "accept_order_batch",
+        &SimpleRiskManager::accept_order_batch,
+        py::arg("orders"),
+        py::arg("portfolio")
+    )
+    .def(
+        "acceptable",
+        &SimpleRiskManager::acceptable,
+        py::arg("portfolio")
+    );
+
+
     
     py::class_<Backtester>(m, "Backtester")
     .def(
@@ -211,6 +269,22 @@ PYBIND11_MODULE(engine_cpp, m) {
         py::arg("portfolio"),
         py::arg("fee_rate") = 0.0010
     )
+    .def(
+    py::init<
+        const std::vector<MarketEvent>&,
+        std::shared_ptr<Strategy>,
+        Portfolio,
+        std::shared_ptr<RiskManagerBase>,
+        double
+    >(),
+    py::arg("market_events"),
+    py::arg("strategy"),
+    py::arg("portfolio"),
+    py::arg("risk_manager"),
+    py::arg("fee_rate") = 0.0010
+)
+
+
     .def("run", &Backtester::run)
     .def("get_equity", &Backtester::get_equity)
     .def("get_orders", &Backtester::get_orders)

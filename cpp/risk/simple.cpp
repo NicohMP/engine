@@ -1,4 +1,4 @@
-#include "risk_manager.hpp"
+#include "simple.hpp"
 #include "portfolio/position.hpp"
 #include <optional>
 
@@ -24,9 +24,9 @@ void apply_hypothetical_order(const OrderEvent& order, Portfolio& portfolio){
     portfolio.update_position(fill);
 }
 
-RiskManager::RiskManager(RiskLimits limits) : limits_(limits){}
+SimpleRiskManager::SimpleRiskManager(RiskLimits limits) : limits_(limits){}
 
-std::optional<std::vector<OrderEvent>> RiskManager::accept_order_batch(const std::vector<OrderEvent>& orders, const Portfolio& portfolio) const{
+std::optional<std::vector<OrderEvent>> SimpleRiskManager::accept_order_batch(const std::vector<OrderEvent>& orders, const Portfolio& portfolio) const{
     Portfolio shadow = copy_portfolio(portfolio);
     for (const OrderEvent& order:orders){
         apply_hypothetical_order(order, shadow);
@@ -39,7 +39,7 @@ std::optional<std::vector<OrderEvent>> RiskManager::accept_order_batch(const std
         
 
 
-bool RiskManager::acceptable(const Portfolio& portfolio) const{
+bool SimpleRiskManager::acceptable(const Portfolio& portfolio) const{
     bool decision = true;
     double equity = portfolio.total_equity();
     if (equity <= 0.0) {

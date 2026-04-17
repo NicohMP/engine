@@ -1,6 +1,7 @@
 #pragma once
 #include "backtest/event_types.hpp"
 #include "portfolio/portfolio.hpp"
+#include "risk/base.hpp"
 #include <optional>
 #include <stdexcept>
 #include <vector>
@@ -17,11 +18,11 @@ Portfolio copy_portfolio(const Portfolio& portfolio);
 
 void apply_hypothetical_order(const OrderEvent& order, Portfolio& portfolio);
 
-class RiskManager{
+class SimpleRiskManager: public RiskManagerBase {
     private:
         RiskLimits limits_;
     public:
-        RiskManager(RiskLimits limits);
-        std::optional<std::vector<OrderEvent>> accept_order_batch(const std::vector<OrderEvent>& orders, const Portfolio& portfolio) const;
+        SimpleRiskManager(RiskLimits limits);
+        virtual std::optional<std::vector<OrderEvent>> accept_order_batch(const std::vector<OrderEvent>& orders, const Portfolio& portfolio) const override;
         bool acceptable(const Portfolio& portfolio) const;
 };

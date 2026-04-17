@@ -27,7 +27,8 @@ add_executable(engine
     strategy/sma.cpp
     strategy/buy_and_hold.cpp
     strategy/random.cpp
-    risk/risk_manager.cpp
+    risk/simple.cpp
+
 )
 
 # Tell the `engine` executable where to look for project header files.
@@ -60,7 +61,8 @@ pybind11_add_module(engine_cpp
     strategy/random.cpp
     backtest/backtester.cpp
     execution/execution_engine.cpp
-    risk/risk_manager.cpp
+    risk/simple.cpp
+
 )
 
 # Tell the `engine_cpp` Python module where to find project header files.

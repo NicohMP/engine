@@ -29,7 +29,7 @@ std::optional<OrderEvent> flat_asset(const std::string& ticker, double current_q
     if (current_quantity==0.0){
         return std::nullopt;
     }
-    TradeSide side = (current_quantity > 0.0) ? TradeSide::Buy : TradeSide::Sell;
+    TradeSide side = (current_quantity < 0.0) ? TradeSide::Buy : TradeSide::Sell;
     OrderEvent order{generate_order_id(),ticker, side, std::abs(current_quantity), OrderType::Market, std::nullopt};
     return order;
 }

@@ -24,7 +24,7 @@ int main() {
     auto start = std::chrono::steady_clock::now();
 
     for (int i = 0; i < n_runs; ++i) {
-        auto strat = std::make_unique<RandomStrategy>(
+        auto strat = std::make_shared<RandomStrategy>(
             tickers,
             200.0,
             std::nullopt,
@@ -39,7 +39,7 @@ int main() {
         limits.max_gross_exposure = 2.0;
         RiskManager risk_manager(limits);
 
-        Backtester backtester(mevents, std::move(strat), portfolio);
+        Backtester backtester(mevents, strat, portfolio);
         backtester.run();
     }
 

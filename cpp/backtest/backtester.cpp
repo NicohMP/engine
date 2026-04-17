@@ -9,7 +9,7 @@
 
 Backtester::Backtester(
     const std::vector<MarketEvent>& mevents,
-    std::unique_ptr<Strategy> strategy,
+    std::shared_ptr<Strategy> strategy,
     Portfolio init_portfolio,
     std::optional<RiskManager> risk_manager,
     double fee_rate
@@ -34,7 +34,7 @@ Backtester::Backtester(
 
 Backtester::Backtester(
     const std::vector<MarketEvent>& mevents,
-    std::unique_ptr<Strategy> strategy,
+    std::shared_ptr<Strategy> strategy,
     Portfolio init_portfolio,
     double fee_rate
 ) : Backtester(

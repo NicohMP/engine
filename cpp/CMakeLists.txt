@@ -58,6 +58,9 @@ pybind11_add_module(engine_cpp
     backtest/event_types.cpp
     strategy/base.cpp
     strategy/random.cpp
+    backtest/backtester.cpp
+    execution/execution_engine.cpp
+    risk/risk_manager.cpp
 )
 
 # Tell the `engine_cpp` Python module where to find project header files.

@@ -10,6 +10,7 @@
 #include "portfolio/position.hpp"
 #include "portfolio/portfolio.hpp"
 #include "strategy/random.hpp"
+#include "backtest/backtester.hpp"
 
 
 // Short alias so we can write `py::...` instead of `pybind11::...`.
@@ -22,6 +23,20 @@ namespace py = pybind11;
 int add(int a, int b) {
     return a + b;
 }
+
+
+class PyStrategy : public Strategy, public py::trampoline_self_life_support {
+    public:
+        using Strategy::Strategy;
+        std::optional<std::vector<OrderEvent>> on_market_event(const MarketEvent& mevent, const Portfolio& portfolio) override {
+            PYBIND11_OVERRIDE_PURE(
+                std::optional<std::vector<OrderEvent>>,
+                Strategy,
+                on_market_event,
+                mevent,
+                portfolio);
+            }
+        };
 
 // This macro creates the Python extension module.
 //
@@ -87,7 +102,14 @@ PYBIND11_MODULE(engine_cpp, m) {
         .def_readwrite("side", &OrderEvent::side)
         .def_readwrite("quantity", &OrderEvent::quantity)
         .def_readwrite("order_type", &OrderEvent::order_type)
-        .def_readwrite("price", &OrderEvent::price);
+        .def_readwrite("price", &OrderEvent::price)
+        .def("__repr__", [](const OrderEvent& o) {
+            return "<OrderEvent id=" + std::to_string(o.id) +
+                " ticker=" + o.ticker +
+                " quantity=" + std::to_string(o.quantity.value_or(0.0)) +
+                ">";
+        });
+
 
     py::class_<FillEvent>(m,"FillEvent",py::dynamic_attr())
         .def(
@@ -106,7 +128,16 @@ PYBIND11_MODULE(engine_cpp, m) {
         .def_readwrite("side", &FillEvent::side)
         .def_readwrite("quantity", &FillEvent::quantity)
         .def_readwrite("price", &FillEvent::price)
-        .def_readwrite("fees", &FillEvent::fees);
+        .def_readwrite("fees", &FillEvent::fees)
+        .def("__repr__", [](const FillEvent& f) {
+            return "<FillEvent order_id=" + std::to_string(f.order_id) +
+                " ticker=" + f.ticker +
+                " quantity=" + std::to_string(f.quantity) +
+                " price=" + std::to_string(f.price) +
+                " fees=" + std::to_string(f.fees) +
+                ">";
+        });
+
 
     py::class_<Position>(m,"Position")
         .def(
@@ -128,11 +159,26 @@ PYBIND11_MODULE(engine_cpp, m) {
         .def("has_position", &Portfolio::has_position, py::arg("ticker"))
         .def("has_price", &Portfolio::has_price, py::arg("ticker"))
         .def("position_qty", &Portfolio::position_qty, py::arg("ticker"))
-        .def("total_equity", &Portfolio::total_equity);
+        .def("total_equity", &Portfolio::total_equity)
+        .def("update_position", &Portfolio::update_position, py::arg("fill_event"))
+        .def("update_prices", &Portfolio::update_prices, py::arg("market_event"))
+        .def("price", &Portfolio::price, py::arg("ticker"))
+        .def("weights", &Portfolio::weights)
+        .def("gross_exposure", &Portfolio::gross_exposure)
+        .def("net_exposure", &Portfolio::net_exposure);
+
+
 
     
-    py::class_<Strategy, py::smart_holder>(m, "Strategy");
-
+    py::class_<Strategy, PyStrategy, py::smart_holder>(m, "Strategy")
+        .def(py::init<>())
+        .def(
+            "on_market_event",
+            &Strategy::on_market_event,
+            py::arg("mevent"),
+            py::arg("portfolio")
+        );
+        
 
     py::class_<RandomStrategy,Strategy, py::smart_holder>(m,"RandomStrategy")
         .def(
@@ -150,6 +196,27 @@ PYBIND11_MODULE(engine_cpp, m) {
             py::arg("mevent"),
             py::arg("portfolio")
         );
+
+    
+    py::class_<Backtester>(m, "Backtester")
+    .def(
+        py::init<
+            const std::vector<MarketEvent>&,
+            std::shared_ptr<Strategy>,
+            Portfolio,
+            double
+        >(),
+        py::arg("market_events"),
+        py::arg("strategy"),
+        py::arg("portfolio"),
+        py::arg("fee_rate") = 0.0010
+    )
+    .def("run", &Backtester::run)
+    .def("get_equity", &Backtester::get_equity)
+    .def("get_orders", &Backtester::get_orders)
+    .def("get_fills", &Backtester::get_fills)
+    .def("get_fee_rate", &Backtester::get_fee_rate);
+
     
 
     

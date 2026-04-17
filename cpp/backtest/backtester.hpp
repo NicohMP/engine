@@ -26,7 +26,7 @@ class Backtester {
         std::vector<MarketEvent> mevents_;
         Portfolio portfolio;
         std::optional<RiskManager> risk_manager_;
-        std::unique_ptr<Strategy> strategy_;
+        std::shared_ptr<Strategy> strategy_;
         ExecutionEngine execution_engine_;
         std::deque<Event> event_queue_;
         std::vector<OrderEvent> orders_;
@@ -37,14 +37,14 @@ class Backtester {
     public:
         Backtester(
             const std::vector<MarketEvent>& mevents,
-            std::unique_ptr<Strategy> strategy,
+            std::shared_ptr<Strategy> strategy,
             Portfolio portfolio,
             std::optional<RiskManager> risk_manager = std::nullopt,
             double fee_rate = kFeeRateStandard
         );
         Backtester(
             const std::vector<MarketEvent>& mevents,
-            std::unique_ptr<Strategy> strategy,
+            std::shared_ptr<Strategy> strategy,
             Portfolio portfolio,
             double fee_rate
         );

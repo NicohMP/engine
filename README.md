@@ -1,100 +1,123 @@
-# Trading Engine Stage 1
+# Trading Engine
 
-This project is a single-symbol backtesting mini-engine in C++17.
+Event-driven backtesting engine with a C++ core and Python research interface.
 
-Current Stage 1 pipeline:
+The C++ side owns the simulation plumbing: market/order/fill events, portfolio accounting, execution, risk checks, strategy dispatch, and the backtest event loop. Python is used for research workflows, notebooks, feature engineering, strategy experiments, risk experiments, analysis, and plotting.
 
-1. Load market data from CSV into `std::vector<Tick>`.
-2. Run a strategy on each tick.
-3. Convert actions to trades using a simple execution model.
-4. Update position, cash, and equity.
-5. Compute summary statistics from the equity curve.
+## Layout
 
-## File Layout
+- `cpp/backtest/`: event types and `Backtester`
+- `cpp/portfolio/`: `Portfolio` and `Position`
+- `cpp/execution/`: execution engine and order filling
+- `cpp/strategy/`: strategy base class and C++ strategies
+- `cpp/risk/`: risk-manager base class and C++ risk managers
+- `cpp/python/`: `pybind11` bindings exposed as `engine_cpp`
+- `cpp/app/`: C++ executable entry point
+- `ml/`: Python research code, notebooks, data tooling, and strategy experiments
 
-- Domain types
-  - `tick.hpp`: market data row (`Tick`)
-  - `trading_types.hpp`: `Action`, `Trade`, enums
-  - `position.hpp`: single-symbol position state
-  - `account_state.hpp`: account snapshot (`cash`, `equity`)
-- Strategy contract and implementations
-  - `strategy.hpp`: abstract strategy interface
-  - `strategies/sma_strategy.hpp/.cpp`: SMA crossover strategy
-- Engine
-  - `backtester.hpp/.cpp`: simulation loop and accounting
-- Data ingestion
-  - `parse_csv.hpp/.cpp`: legacy CSV parser + kline parser/conversion
-- Analytics/reporting
-  - `analytics.hpp/.cpp`: indicators + `BacktestReport` computation/display
-- Wiring
-  - `main.cpp`: creates strategy, runs backtest, prints report
+## C++ Engine
 
-## Strategy Contract
+The backtester processes `MarketEvent`, `OrderEvent`, and `FillEvent` objects through an event queue.
 
-`Strategy::on_tick(const Tick&, const Position&, const AccountState&) -> Action`
+On each market event:
 
-- Input:
-  - current tick
-  - current position (for the traded symbol)
-  - current account snapshot
-- Output (`Action`):
-  - `Buy` / `Sell` with quantity
-  - `Hold` with no quantity
+1. Portfolio prices are updated.
+2. The strategy proposes orders.
+3. The optional risk manager accepts or rejects the order batch.
+4. The execution engine receives accepted orders and creates fills.
+5. The portfolio updates positions, cash, and equity.
 
-Contract expectation:
+Strategies and risk managers are interface-based:
 
-- `Buy` and `Sell` must carry a valid positive quantity.
-- `Hold` should carry no quantity (`std::nullopt`).
+- `Strategy` has C++ implementations such as `RandomStrategy`
+- `RiskManagerBase` has C++ implementations such as `SimpleRiskManager`
+- both can also be subclassed from Python through the bindings
 
-## Execution Model (Stage 1)
+## Python Bindings
 
-The backtester uses a simple synchronous fill model:
+The project builds a Python extension module named `engine_cpp` with `pybind11`.
 
-- Signal is produced on the current tick.
-- Trade is filled on the same tick at `tick.close`.
-- No slippage and no transaction fees.
+Python can create C++ events, portfolios, strategies, risk managers, and backtesters:
 
-Accounting update rules:
+```python
+import engine_cpp
 
-- Buy:
-  - `position += quantity`
-  - `cash -= quantity * price`
-- Sell:
-  - `position -= quantity`
-  - `cash += quantity * price`
+mevents = [
+    engine_cpp.MarketEvent(1, "AAPL", 100.0, 101.0, 99.0, 1000.0, 100.0)
+]
 
-## Equity and PnL Interpretation
+portfolio = engine_cpp.Portfolio(
+    [engine_cpp.Position("AAPL", 0.0)],
+    2000.0,
+)
 
-Stage 1 tracks total account value as:
+strategy = engine_cpp.RandomStrategy(["AAPL"], 200.0, seed=123)
 
-`equity = cash + position_quantity * current_price`
+bt = engine_cpp.Backtester(
+    mevents,
+    strategy,
+    portfolio,
+    fee_rate=0.00075,
+)
 
-where `current_price` is the current tick close.
+bt.run()
+equity = bt.get_equity()
+orders = bt.get_orders()
+fills = bt.get_fills()
+```
 
-The equity curve is stored as:
+Python-defined strategies and risk managers can also be passed into the C++ backtester:
 
-`std::vector<std::pair<int64_t, double>>` (`timestamp`, `equity`).
+```python
+class AlwaysBuy(engine_cpp.Strategy):
+    def __init__(self):
+        super().__init__()
 
-## Summary Metrics
+    def on_market_event(self, mevent, portfolio):
+        return [
+            engine_cpp.OrderEvent(
+                0,
+                mevent.ticker,
+                engine_cpp.TradeSide.Buy,
+                1.0,
+            )
+        ]
 
-`BacktestReport` currently includes:
 
-- final equity
-- total return
-- volatility (from period returns)
-- max drawdown
-- number of trades
+class AcceptAllRisk(engine_cpp.RiskManagerBase):
+    def __init__(self):
+        super().__init__()
 
-## Known Scope Limits
+    def accept_order_batch(self, orders, portfolio):
+        return orders
+```
 
-- Single symbol per backtest instance.
-- No fees/slippage/latency model.
-- No multi-asset portfolio accounting yet.
+## Build
 
-## Next Generalization Point
+Configure and build from the repository root:
 
-The main extension path is multi-symbol support:
+```bash
+cmake -S cpp -B build -DPython_EXECUTABLE=$(pwd)/.env/bin/python
+cmake --build build
+```
 
-- replace single `Position` with a per-symbol position container
-- keep strategy input as a snapshot abstraction
-- keep execution/accounting logic in backtester layer
+Run the C++ executable:
+
+```bash
+./build/engine
+```
+
+Use the Python module from the build directory:
+
+```bash
+PYTHONPATH=build .env/bin/python -c "import engine_cpp; print(engine_cpp.add(2, 3))"
+```
+
+In notebooks, add the build directory to `sys.path` before importing:
+
+```python
+import sys
+sys.path.insert(0, "/Users/nicolashoubouyan/Projects/engine/build")
+
+import engine_cpp
+```

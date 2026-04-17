@@ -76,3 +76,9 @@ target_include_directories(engine_cpp PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/strategy
     ${CMAKE_CURRENT_SOURCE_DIR}/risk
 )
+
+add_custom_command(TARGET engine_cpp POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/engine_cpp.pyi
+        $<TARGET_FILE_DIR:engine_cpp>/engine_cpp.pyi
+)

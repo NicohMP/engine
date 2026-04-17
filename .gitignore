@@ -21,9 +21,14 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Pybind builds / bindings
+*.so
+*.pyd
+*.dylib
 
 # C++ / CMake build artifacts
 build/
+build-release/
 cmake-build-*/
 CMakeFiles/
 CMakeCache.txt

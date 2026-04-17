@@ -13,6 +13,7 @@ from .events import (
 )
 from .portfolio import Portfolio
 from .execution_engine import ExecutionEngine
+from .risk.risk_manager import RiskManager
 
 
 class StrategyProtocol(Protocol):
@@ -39,6 +40,7 @@ class Backtester:
         strategy: StrategyProtocol,
         portfolio: Portfolio,
         fee_rate: float = 0.0010,
+        risk_manager: Optional[RiskManager] = None,
     ) -> None:
         # Fee rate checks
         if fee_rate < 0.0:
@@ -46,6 +48,7 @@ class Backtester:
 
         self.ticker_ = ticker if ticker else "ALL"
         self.strategy_ = strategy
+        self.risk_manager_ = risk_manager
         self.portfolio = portfolio
         self.execution_engine_ = ExecutionEngine(fee_rate=fee_rate)
         self.fee_rate_ = float(fee_rate)
@@ -83,7 +86,13 @@ class Backtester:
                     maybe_orders = self.strategy_.on_market_event(
                         market_event, self.portfolio)
                     if maybe_orders is not None:
-                        for maybe_order in maybe_orders:
+                        accepted_orders = maybe_orders
+                        if self.risk_manager_ is not None:
+                            accepted_orders = self.risk_manager_.accept_order_batch(
+                                maybe_orders, self.portfolio)
+                        if accepted_orders is None:
+                            continue
+                        for maybe_order in accepted_orders:
                             if maybe_order is None:
                                 continue
                             order = maybe_order

@@ -1,39 +1,49 @@
 #include "backtester.hpp"
 #include "execution_engine.hpp"
-#include <optional>
+#include "risk/risk_manager.hpp"
 #include <algorithm>
 #include <stdexcept>
+#include <optional>
 #include <variant>
 
 
 Backtester::Backtester(
-    std::string ticker,
     const std::vector<MarketEvent>& mevents,
     std::unique_ptr<Strategy> strategy,
     Portfolio init_portfolio,
+    std::optional<RiskManager> risk_manager,
     double fee_rate
-)
-    : ticker_(std::move(ticker)),
-      portfolio(std::move(init_portfolio)),
-      strategy_(std::move(strategy)),
-      execution_engine_(fee_rate),
-      fee_rate_(fee_rate) {
+    ): 
+    portfolio(std::move(init_portfolio)),
+    strategy_(std::move(strategy)),
+    risk_manager_(std::move(risk_manager)),
+    execution_engine_(fee_rate),
+    fee_rate_(fee_rate) 
+    {
     if (fee_rate_ < 0.0) {
         throw std::runtime_error("fee_rate must be non-negative");
     }
-
-    for (const MarketEvent& mevent : mevents) { // filter only markets relevant to specified ticker
-        if (mevent.ticker == ticker_) {
-            mevents_.push_back(mevent);
-        }
-    }
-    if (mevents_.empty()){ // check filtered market events isn't empty
-        throw std::runtime_error("no data for ticker " + ticker_);
+    mevents_ = mevents;
+    if (mevents_.empty()){ // check market events isn't empty
+        throw std::runtime_error("no data ");
     }
     std::sort(mevents_.begin(), mevents_.end(), [](const MarketEvent& a, const MarketEvent& b){return a.timestamp < b.timestamp;});
     equity_.reserve(mevents_.size());
     
 }
+
+Backtester::Backtester(
+    const std::vector<MarketEvent>& mevents,
+    std::unique_ptr<Strategy> strategy,
+    Portfolio init_portfolio,
+    double fee_rate
+) : Backtester(
+        mevents,
+        std::move(strategy),
+        std::move(init_portfolio),
+        std::nullopt,
+        fee_rate
+    ) {}
 
 
 void Backtester::run() {
@@ -50,16 +60,23 @@ void Backtester::run() {
                 const MarketEvent& market_event = std::get<MarketEvent>(event);
                 portfolio.update_prices(market_event); // update portfolio info with new market info
 
-                std::optional<std::vector<OrderEvent>> maybe_orders = strategy_->on_market_event(market_event, portfolio); // apply strategy to possibly place new orders
+                auto maybe_orders = strategy_->on_market_event(market_event, portfolio); // apply strategy to possibly place new orders
+                
                 if (maybe_orders) {
-                    for (OrderEvent order : *maybe_orders) {
-                        if (order.id == 0) {
-                            order.id = generate_order_id();
+                    std::optional<std::vector<OrderEvent>> accepted_orders = maybe_orders;
+                    if (risk_manager_){
+                        accepted_orders = risk_manager_->accept_order_batch(*maybe_orders, portfolio);
+                    }
+                    if (accepted_orders){
+                        for (OrderEvent order : *accepted_orders) {
+                            if (order.id == 0) {
+                                order.id = generate_order_id();
+                            }
+                            if (!order.quantity || *order.quantity <= 0.0) {
+                                throw std::runtime_error("Invalid order quantity");
+                            }
+                            event_queue_.push_back(Event{order}); // if an order is passed, add to the queue
                         }
-                        if (!order.quantity || *order.quantity <= 0.0) {
-                            throw std::runtime_error("Invalid order quantity");
-                        }
-                        event_queue_.push_back(Event{order}); // if an order is passed, add to the queue
                     }
                 }
 

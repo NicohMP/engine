@@ -3,11 +3,13 @@
 #include "portfolio.hpp"
 #include "event_types.hpp"
 #include "execution_engine.hpp"
+#include "risk/risk_manager.hpp"
 #include <vector>
 #include <deque>
 #include <string>
 #include <memory>
 #include <utility>
+#include <optional>
 #include <cstdint>
 
 
@@ -22,8 +24,8 @@ class Backtester {
         static constexpr double kFeeRateDiscount = 0.00075; // 0.075%
 
         std::vector<MarketEvent> mevents_;
-        std::string ticker_;
         Portfolio portfolio;
+        std::optional<RiskManager> risk_manager_;
         std::unique_ptr<Strategy> strategy_;
         ExecutionEngine execution_engine_;
         std::deque<Event> event_queue_;
@@ -34,11 +36,17 @@ class Backtester {
     
     public:
         Backtester(
-            std::string ticker,
             const std::vector<MarketEvent>& mevents,
             std::unique_ptr<Strategy> strategy,
             Portfolio portfolio,
+            std::optional<RiskManager> risk_manager = std::nullopt,
             double fee_rate = kFeeRateStandard
+        );
+        Backtester(
+            const std::vector<MarketEvent>& mevents,
+            std::unique_ptr<Strategy> strategy,
+            Portfolio portfolio,
+            double fee_rate
         );
         void run();
         const std::vector<std::pair<int64_t, double>>& get_equity() const { return equity_; }

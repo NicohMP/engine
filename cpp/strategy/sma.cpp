@@ -1,4 +1,4 @@
-#include "sma_strategy.hpp"
+#include "sma.hpp"
 #include <stdexcept>
 
 SMAStrategy::SMAStrategy(size_t fw, size_t sw, double lt, double st, std::string t) : ticker(t), slow_window(sw), fast_window(fw), long_target(lt), short_target(st) {

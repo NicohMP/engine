@@ -4,7 +4,6 @@
 #include <optional>
 #include <vector>
 
-
 class  SMAStrategy : public Strategy {
     private:
         // Parameters : asset ticker, windows sizes, target shares

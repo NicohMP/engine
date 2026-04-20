@@ -47,19 +47,23 @@ class MarketDataStore {
     private:
         std::vector<Bar> bars_;
         std::vector<TimeSlice> slices_;
-        std::vector<std::string> id_to_symbol_;
+        std::unordered_map<SymbolId, std::string> id_to_symbol_;
         std::unordered_map<std::string, SymbolId> symbol_to_id_;
 
         
         explicit MarketDataStore(
             std::vector<Bar> bars,
             std::vector<TimeSlice> slices,
-            std::vector<std::string> id_to_symbol,
+            std::unordered_map<SymbolId, std::string> id_to_symbol,
             std::unordered_map<std::string, SymbolId> symbol_to_id
         );
     public:
         static BuildResult from_market_events(std::vector<MarketEvent> rows);
-        SymbolId get_or_add_symbol(const std::string& raw_ticker) ;
+        SymbolId get_or_add_id(const std::string& raw_ticker) ;
+        std::string get_symbol(const SymbolId& id) const;
+        const std::vector<Bar>& bars() const { return bars_; }
+        const std::vector<TimeSlice>& slices() const { return slices_; }
+
     };
 
 struct BuildResult {

@@ -33,35 +33,35 @@ std::string normalize_ticker(const std::string& raw_ticker){
 static SymbolId get_add_symbol_build(
     const std::string& raw_ticker,
     std::unordered_map<std::string, SymbolId>& symbol_to_id,
-    std::vector<std::string>& id_to_symbol){
+    std::unordered_map<SymbolId, std::string>& id_to_symbol){
         /* Get id of raw ticker if stored, ohterwise add it the map and return it*/
         std::string ticker = normalize_ticker(raw_ticker); // trim + uppercase
         auto it = symbol_to_id.find(ticker);
         if (it != symbol_to_id.end()) return it->second;
 
         SymbolId id = static_cast<SymbolId>(id_to_symbol.size());
-        id_to_symbol.push_back(ticker);
+        id_to_symbol.emplace(id, ticker);
         symbol_to_id.emplace(ticker, id);
         return id;
 }
 
 
 
-SymbolId MarketDataStore::get_or_add_symbol(const std::string& raw_ticker) {
+SymbolId MarketDataStore::get_or_add_id(const std::string& raw_ticker) {
     /* Get id of raw ticker if stored, ohterwise add it the map and return it*/
     std::string ticker = normalize_ticker(raw_ticker); // trim + uppercase
     auto it = symbol_to_id_.find(ticker);
     if (it != symbol_to_id_.end()) return it->second;
 
     SymbolId id = static_cast<SymbolId>(id_to_symbol_.size());
-    id_to_symbol_.push_back(ticker);
+    id_to_symbol_.emplace(id, ticker);
     symbol_to_id_.emplace(ticker, id);
     return id;
 }
 
 MarketDataStore::MarketDataStore(std::vector<Bar> bars,
             std::vector<TimeSlice> slices,
-            std::vector<std::string> id_to_symbol,
+            std::unordered_map<SymbolId, std::string> id_to_symbol,
             std::unordered_map<std::string, SymbolId> symbol_to_id
         ) : bars_(std::move(bars)),
             slices_(std::move(slices)),
@@ -83,6 +83,14 @@ bool is_valid_row(const MarketEvent& e) {
 }
 }
 
+std::string MarketDataStore::get_symbol(const SymbolId& id) const {
+    auto it = id_to_symbol_.find(id);
+    if (it == id_to_symbol_.end()) {
+        throw std::runtime_error("No ticker found for symbol id: " + std::to_string(id));
+    }
+    return it->second;
+}
+
 
 BuildResult MarketDataStore::from_market_events(std::vector<MarketEvent> rows){
 
@@ -91,7 +99,7 @@ BuildResult MarketDataStore::from_market_events(std::vector<MarketEvent> rows){
     stats.input_rows = rows.size();
 
     // Declare MarketDataStore arguments
-    std::vector<std::string> id_to_symbol;
+    std::unordered_map<SymbolId, std::string> id_to_symbol;
     std::unordered_map<std::string, SymbolId> symbol_to_id;
     std::vector<Bar> bars;
     bars.reserve(rows.size());
@@ -160,3 +168,4 @@ BuildResult MarketDataStore::from_market_events(std::vector<MarketEvent> rows){
     };
     return result;
 }
+

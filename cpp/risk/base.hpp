@@ -8,7 +8,7 @@
 class RiskManagerBase {
 public:
     virtual ~RiskManagerBase() = default;
-
+    virtual void reset() = 0;
     virtual std::optional<std::vector<OrderEvent>> accept_order_batch(
         const std::vector<OrderEvent>& orders,
         const Portfolio& portfolio

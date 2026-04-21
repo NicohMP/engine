@@ -12,4 +12,5 @@ class ExecutionEngine {
         explicit ExecutionEngine(double fee_rate = 0.0010);
         void pass_order(const OrderEvent& order);
         std::vector<FillEvent> fill_orders(const MarketEvent& mevent);
+        void reset_pending_orders();
 };

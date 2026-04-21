@@ -17,9 +17,10 @@ enable_testing()
 # Build the normal command-line executable called `engine`.
 add_executable(engine
     app/main.cpp
-    backtest/backtester.cpp
-    backtest/event_types.cpp
     data/parse_csv.cpp
+    backtest/backtester.cpp
+    core/event_types.cpp
+    core/engine_core.cpp
     execution/execution_engine.cpp
     portfolio/portfolio.cpp
     portfolio/position.cpp
@@ -30,7 +31,7 @@ add_executable(engine
     strategy/random.cpp
     risk/simple.cpp
     data_store/market_data_store.cpp
-    core/engine_core.cpp
+    simulation/simulator.cpp
 
 )
 
@@ -61,7 +62,7 @@ pybind11_add_module(engine_cpp
     python/bindings.cpp
     portfolio/portfolio.cpp
     portfolio/position.cpp
-    backtest/event_types.cpp
+    core/event_types.cpp
     strategy/base.cpp
     strategy/random.cpp
     backtest/backtester.cpp

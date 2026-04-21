@@ -8,9 +8,10 @@ EngineCore::EngineCore(
     std::shared_ptr<RiskManagerBase> risk_manager,
     double fee_rate
     ): 
-    portfolio(std::move(init_portfolio)),
-    strategy_(std::move(strategy)),
+    initial_portfolio(std::move(init_portfolio)),
+    portfolio(initial_portfolio),
     risk_manager_(std::move(risk_manager)),
+    strategy_(std::move(strategy)),
     execution_engine_(fee_rate),
     fee_rate_(fee_rate) 
     {
@@ -34,12 +35,27 @@ EngineCore::EngineCore(
     ) {}
 
 
-void EngineCore::reset(){
-    event_queue_.clear();
+void EngineCore::reset_runtime_logs(){
     orders_.clear();
     fills_.clear();
     equity_.clear();
 }
+
+void EngineCore::reset_step_state(){
+    event_queue_.clear();
+    execution_engine_.reset_pending_orders();
+}
+
+void EngineCore::reset_all(){
+    reset_runtime_logs();
+    reset_step_state();
+    portfolio = initial_portfolio;
+    strategy_->reset();
+    if (risk_manager_){
+        risk_manager_->reset();
+    }
+}
+
 
 void EngineCore::step(const MarketEvent& mevent){
     event_queue_.push_back(Event{mevent});

@@ -19,6 +19,7 @@ class EngineCore {
         static constexpr double kFeeRateStandard = 0.0010;  // 0.10%
         static constexpr double kFeeRateDiscount = 0.00075; // 0.075%
 
+        const Portfolio initial_portfolio;
         Portfolio portfolio;
         std::shared_ptr<RiskManagerBase> risk_manager_; // shared pointer is automatically nullptr when nothig is passed so no need for std::optional<> anymore
         std::shared_ptr<Strategy> strategy_;
@@ -41,9 +42,13 @@ class EngineCore {
             double fee_rate
         );
         void step(const MarketEvent& mevent);
-        void reset();
+        void reset_runtime_logs();
+        void reset_step_state();
+        void reset_all();
         const std::vector<std::pair<int64_t, double>>& get_equity() const { return equity_; }
         const std::vector<OrderEvent>& get_orders() const { return orders_; }
         const std::vector<FillEvent>& get_fills() const { return fills_; }
+        const Portfolio& get_portfolio() const { return portfolio;}
         double get_fee_rate() const { return fee_rate_; }
+
 };

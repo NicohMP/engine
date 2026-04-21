@@ -93,3 +93,8 @@ std::vector<FillEvent> ExecutionEngine::fill_orders(const MarketEvent& mevent) {
     pending_orders = std::move(still_pending);
     return fills;
 }
+
+
+void ExecutionEngine::reset_pending_orders(){
+    pending_orders.clear();
+}

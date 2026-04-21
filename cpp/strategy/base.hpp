@@ -11,6 +11,7 @@
 class Strategy {
     public:
         virtual ~Strategy() = default;
+        virtual void reset() = 0;
         virtual std::optional<std::vector<OrderEvent>> on_market_event(
             const MarketEvent& mevent,
             const Portfolio& portfolio) = 0 ;

@@ -4,6 +4,8 @@ from collections.abc import Sequence
 from enum import Enum
 from typing import overload
 
+SymbolId = int
+
 
 class TradeSide(Enum):
     Buy: TradeSide
@@ -16,7 +18,7 @@ class OrderType(Enum):
     Stop: OrderType
 
 
-class MarketEvent:
+class Tick:
     timestamp: int
     ticker: str
     open: float
@@ -36,9 +38,60 @@ class MarketEvent:
     ) -> None: ...
 
 
+class TimeSlice:
+    timestamp: int
+    begin_idx: int
+    end_idx: int
+
+
+class BuildStats:
+    input_rows: int
+    kept_rows: int
+    dropped_invalid: int
+    dropped_duplicates: int
+    num_symbols: int
+    num_slices: int
+    def __init__(self) -> None: ...
+
+
+class MarketEvent:
+    timestamp: int
+    symbol_id: SymbolId
+    open: float
+    high: float
+    low: float
+    volume: float
+    close: float
+    def __init__(
+        self,
+        timestamp: int,
+        symbol_id: SymbolId,
+        open: float,
+        high: float,
+        low: float,
+        volume: float,
+        close: float,
+    ) -> None: ...
+
+
+class MarketDataStore:
+    @staticmethod
+    def from_ticks(rows: Sequence[Tick]) -> BuildResult: ...
+    def get_or_add_id(self, ticker: str) -> SymbolId: ...
+    def get_symbol(self, symbol_id: SymbolId) -> str: ...
+    def get_id(self, ticker: str) -> SymbolId: ...
+    def bars(self) -> list[MarketEvent]: ...
+    def slices(self) -> list[TimeSlice]: ...
+
+
+class BuildResult:
+    store: MarketDataStore
+    stats: BuildStats
+
+
 class OrderEvent:
     id: int
-    ticker: str
+    symbol_id: SymbolId
     side: TradeSide
     quantity: float | None
     order_type: OrderType
@@ -47,7 +100,7 @@ class OrderEvent:
     def __init__(
         self,
         id: int,
-        ticker: str,
+        symbol_id: SymbolId,
         side: TradeSide,
         quantity: float | None,
         order_type: OrderType = OrderType.Market,
@@ -56,7 +109,7 @@ class OrderEvent:
     @overload
     def __init__(
         self,
-        ticker: str,
+        symbol_id: SymbolId,
         side: TradeSide,
         quantity: float | None,
         order_type: OrderType = OrderType.Market,
@@ -68,7 +121,7 @@ class OrderEvent:
 class FillEvent:
     order_id: int
     timestamp: int
-    ticker: str
+    symbol_id: SymbolId
     side: TradeSide
     quantity: float
     price: float
@@ -77,7 +130,7 @@ class FillEvent:
         self,
         order_id: int,
         timestamp: int,
-        ticker: str,
+        symbol_id: SymbolId,
         side: TradeSide,
         quantity: float,
         price: float,
@@ -86,9 +139,9 @@ class FillEvent:
 
 
 class Position:
-    def __init__(self, ticker: str, initial_quantity: float = 0.0) -> None: ...
+    def __init__(self, symbol_id: SymbolId, initial_quantity: float = 0.0) -> None: ...
     def get_quantity(self) -> float: ...
-    def get_ticker(self) -> str: ...
+    def get_id(self) -> SymbolId: ...
     def update(self, fill_event: FillEvent) -> None: ...
 
 
@@ -98,14 +151,14 @@ class Portfolio:
     @overload
     def __init__(self, init_cash: float) -> None: ...
     def get_cash(self) -> float: ...
-    def has_position(self, ticker: str) -> bool: ...
-    def has_price(self, ticker: str) -> bool: ...
-    def position_qty(self, ticker: str) -> float: ...
+    def has_position(self, symbol_id: SymbolId) -> bool: ...
+    def has_price(self, symbol_id: SymbolId) -> bool: ...
+    def position_qty(self, symbol_id: SymbolId) -> float: ...
     def total_equity(self) -> float: ...
     def update_position(self, fill_event: FillEvent) -> None: ...
     def update_prices(self, market_event: MarketEvent) -> None: ...
-    def price(self, ticker: str) -> float: ...
-    def weights(self) -> dict[str, float]: ...
+    def price(self, symbol_id: SymbolId) -> float: ...
+    def weights(self) -> dict[SymbolId, float]: ...
     def gross_exposure(self) -> float: ...
     def net_exposure(self) -> float: ...
 
@@ -126,7 +179,7 @@ class Strategy:
 class RandomStrategy(Strategy):
     def __init__(
         self,
-        universe: Sequence[str],
+        universe_ids: Sequence[SymbolId],
         target_notional: float,
         probabilities: Sequence[float] | None = None,
         seed: int = 42,
@@ -163,7 +216,7 @@ class Backtester:
     @overload
     def __init__(
         self,
-        market_events: Sequence[MarketEvent],
+        data: MarketDataStore,
         strategy: Strategy,
         portfolio: Portfolio,
         fee_rate: float = 0.0010,
@@ -171,7 +224,7 @@ class Backtester:
     @overload
     def __init__(
         self,
-        market_events: Sequence[MarketEvent],
+        data: MarketDataStore,
         strategy: Strategy,
         portfolio: Portfolio,
         risk_manager: RiskManagerBase | None,

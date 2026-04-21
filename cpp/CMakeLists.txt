@@ -65,6 +65,7 @@ pybind11_add_module(engine_cpp
     backtest/backtester.cpp
     execution/execution_engine.cpp
     risk/simple.cpp
+    data_store/market_data_store.cpp
 
 )
 
@@ -78,6 +79,7 @@ target_include_directories(engine_cpp PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/portfolio
     ${CMAKE_CURRENT_SOURCE_DIR}/strategy
     ${CMAKE_CURRENT_SOURCE_DIR}/risk
+    ${CMAKE_CURRENT_SOURCE_DIR}/data_store
 )
 
 add_custom_command(TARGET engine_cpp POST_BUILD

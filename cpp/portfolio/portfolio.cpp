@@ -6,7 +6,7 @@ Portfolio::Portfolio(std::vector<Position> init_positions, double init_cash): ca
     for (const Position& pos: init_positions) {
         auto [it, inserted] = positions_by_id.emplace(pos.get_id(), pos);
         if (!inserted) {
-            throw std::runtime_error("Duplicate position for id: " + pos.get_id());
+            throw std::runtime_error("Duplicate position for id: " + std::to_string(pos.get_id()));
         }
     }
 }

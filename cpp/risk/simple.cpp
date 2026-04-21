@@ -16,10 +16,10 @@ void apply_hypothetical_order(const OrderEvent& order, Portfolio& portfolio){
     FillEvent fill{
         order.id,
         0,
-        order.ticker, 
+        order.symbol_id, 
         order.side,
         *order.quantity, 
-        portfolio.price(order.ticker),
+        portfolio.price(order.symbol_id),
         0.0};
     portfolio.update_position(fill);
 }

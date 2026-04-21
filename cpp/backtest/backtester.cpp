@@ -27,7 +27,7 @@ Backtester::Backtester(
     // if (data_.empty()){ // check market events isn't empty
     //     throw std::runtime_error("no data ");
     // }
-    equity_.reserve(data_.slices().size());
+    equity_.reserve(data_.bars().size());
     
 }
 

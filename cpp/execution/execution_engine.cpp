@@ -26,7 +26,6 @@ void ExecutionEngine::make_fill(std::vector<FillEvent>& fills,const OrderEvent& 
         order.id,
         mevent.timestamp,
         order.symbol_id,
-        order.ticker,
         order.side,
         fill_quantity,
         fill_price,

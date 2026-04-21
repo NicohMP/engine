@@ -125,7 +125,7 @@ BuildResult MarketDataStore::from_ticks(std::vector<Tick> rows){
             continue;
         }
         SymbolId id = get_add_symbol_build(ticker,symbol_to_id, id_to_symbol);
-        MarketEvent event{row.timestamp,id,ticker, row.open, row.high,row.low, row.close, row.volume};
+        MarketEvent event{row.timestamp,id, row.open, row.high,row.low, row.volume, row.close};
         events.push_back(event);
     }
     // Sort events by timestamp
@@ -178,4 +178,3 @@ BuildResult MarketDataStore::from_ticks(std::vector<Tick> rows){
     };
     return result;
 }
-

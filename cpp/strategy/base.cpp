@@ -7,7 +7,6 @@
 
 
 std::optional<OrderEvent> build_order_to_target_notional(
-    const std::string& ticker,
     const SymbolId& id, 
     double price, 
     double target_notional,
@@ -22,16 +21,15 @@ std::optional<OrderEvent> build_order_to_target_notional(
         return std::nullopt;
     }
     TradeSide side = (order_qty > 0.0) ? TradeSide::Buy : TradeSide::Sell;
-    OrderEvent order{generate_order_id(),id, ticker,side, std::abs(order_qty), OrderType::Market, std::nullopt};
+    OrderEvent order{generate_order_id(),id, side, std::abs(order_qty), OrderType::Market, std::nullopt};
     return order;
 }
 
-std::optional<OrderEvent> flat_asset(const std::string& ticker,const SymbolId& id, double current_quantity){
+std::optional<OrderEvent> flat_asset(const SymbolId& id, double current_quantity){
     if (current_quantity==0.0){
         return std::nullopt;
     }
     TradeSide side = (current_quantity < 0.0) ? TradeSide::Buy : TradeSide::Sell;
-    OrderEvent order{generate_order_id(),id,ticker, side, std::abs(current_quantity), OrderType::Market, std::nullopt};
+    OrderEvent order{generate_order_id(),id, side, std::abs(current_quantity), OrderType::Market, std::nullopt};
     return order;
 }
-

@@ -3,11 +3,12 @@
 #include <deque>
 #include <optional>
 #include <vector>
+#include "event_types.hpp"
 
 class  SMAStrategy : public Strategy {
     private:
-        // Parameters : asset ticker, windows sizes, target shares
-        std::string ticker;
+        // Parameters : asset id, windows sizes, target shares
+        SymbolId symbol_id;
         size_t slow_window;
         size_t fast_window;
         double long_target;
@@ -24,7 +25,7 @@ class  SMAStrategy : public Strategy {
         bool previous_fast_above_slow_ = false;
 
     public: 
-        SMAStrategy(size_t fast_window, size_t slow_window,double long_target,double short_target, std::string ticker);
+        SMAStrategy(size_t fast_window, size_t slow_window,double long_target,double short_target, SymbolId symbol_id);
         virtual std::optional<std::vector<OrderEvent>> on_market_event(const MarketEvent& mevent, const Portfolio& Portfolio) override;
  
 };

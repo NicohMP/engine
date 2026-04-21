@@ -6,19 +6,19 @@
 
 
 RandomStrategy::RandomStrategy(
-    std::vector<std::string> universe,
+    std::vector<SymbolId> u_ids,
     double target_notional,
     std::optional<std::vector<double>> probabilities,
     unsigned int seed): rng_(seed){
         // Remove duplicates from universe
-        std::unordered_set<std::string> seen;
-        for (const std::string& ticker : universe) {
-            if (seen.insert(ticker).second) {
-                universe_.push_back(ticker);
+        std::unordered_set<SymbolId> seen;
+        for (const SymbolId& id : u_ids) {
+            if (seen.insert(id).second) {
+                universe_ids.push_back(id);
             }
         }
         // Check if universe is empty
-        if (universe_.empty()) {
+        if (universe_ids.empty()) {
             throw std::runtime_error("Universe cannot be empty");
         }
         // 
@@ -44,7 +44,7 @@ RandomStrategy::RandomStrategy(
     }
 
 std::optional<std::vector<OrderEvent>> RandomStrategy::on_market_event(const MarketEvent& mevent, const Portfolio& portfolio) {
-    if (std::find(universe_.begin(), universe_.end(), mevent.ticker) == universe_.end()){
+    if (std::find(universe_ids.begin(), universe_ids.end(), mevent.symbol_id) == universe_ids.end()){
         return std::nullopt;
     }
     std::discrete_distribution<int> dist(probas_.begin(), probas_.end()); // Random distribution in {0,1,2}
@@ -53,11 +53,11 @@ std::optional<std::vector<OrderEvent>> RandomStrategy::on_market_event(const Mar
         return std::nullopt;
     }
     double current_qty = 0.0;
-    if (portfolio.has_position(mevent.ticker)){
-        current_qty = portfolio.position_qty(mevent.ticker);
+    if (portfolio.has_position(mevent.symbol_id)){
+        current_qty = portfolio.position_qty(mevent.symbol_id);
     }
     std::optional<OrderEvent> order = build_order_to_target_notional(
-        mevent.ticker,mevent.close,signal*target_not_,current_qty);
+        mevent.symbol_id,mevent.close,signal*target_not_,current_qty);
     std::vector<OrderEvent> orders;
     if (!order){
         return std::nullopt;

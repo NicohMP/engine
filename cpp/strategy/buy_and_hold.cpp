@@ -6,33 +6,33 @@
 
 
 BuyHoldStrategy::BuyHoldStrategy(
-    std::vector<std::string> universe,
-    std::optional<std::unordered_map<std::string,double>> distribution)
+    std::vector<SymbolId> u_ids,
+    std::optional<std::unordered_map<SymbolId,double>> distribution)
     {
         // Remove duplicates from universe
-        std::unordered_set<std::string> seen;
-        for (const std::string& ticker : universe) {
-            if (seen.insert(ticker).second) {
-                universe_.push_back(ticker);
+        std::unordered_set<SymbolId> seen;
+        for (const SymbolId& id : u_ids) {
+            if (seen.insert(id).second) {
+                universe_ids.push_back(id);
             }
         }
         // Check if universe is empty
-        if (universe_.empty()) {
+        if (universe_ids.empty()) {
             throw std::runtime_error("Universe cannot be empty");
         }
 
         if (distribution){
-            // Main check : universe and distribution have the same tickers
-            bool same_keys = distribution->size() == universe_.size();
-            for (const auto& [ticker, weight] : *distribution) {
-                if (std::find(universe_.begin(), universe_.end(), ticker) == universe_.end()) {
+            // Main check : universe and distribution have the same ids
+            bool same_keys = distribution->size() == u_ids.size();
+            for (const auto& [id, weight] : *distribution) {
+                if (std::find(universe_ids.begin(), universe_ids.end(), id) == universe_ids.end()) {
                     same_keys = false;
                     break;
                 }
             }
             // Second check : does distribution sum to 1 
             double weight_sum = 0.0;
-            for (const auto& [ticker, weight] : *distribution) {
+            for (const auto& [id, weight] : *distribution) {
                 weight_sum += weight;
             }
             bool sum_to_1 = is_close(weight_sum,1.0);
@@ -42,9 +42,9 @@ BuyHoldStrategy::BuyHoldStrategy(
             }
             // Otherwise accept distribution
             weights_ = *distribution;
-        } else { // Default to 1/(#tickers)
-            for (const std::string& ticker: universe_){
-                weights_[ticker] = 1.0 / universe_.size();
+        } else { // Default to 1/(#assets)
+            for (const SymbolId& id: universe_ids){
+                weights_[id] = 1.0 / universe_ids.size();
             }
         }
     }
@@ -55,30 +55,30 @@ std::optional<std::vector<OrderEvent>> BuyHoldStrategy::on_market_event(const Ma
         return std::nullopt;
     }
     // While prices are missing for assets in our universe, wait 
-    for (const std::string& ticker: universe_){
-        if (!portfolio.has_price(ticker)){
+    for (const SymbolId& id: universe_ids){
+        if (!portfolio.has_price(id)){
             return std::nullopt;
         }
     }
     // For each asset considered, if price is stored in portfolio,
     // create order to reach target distribution
     std::vector<OrderEvent> orders;
-    for (const std::string& ticker: universe_){
-        double target_not = weights_[ticker] * portfolio.total_equity();
+    for (const SymbolId& id: universe_ids){
+        double target_not = weights_[id] * portfolio.total_equity();
         double current_qty = 0.0;
-        if (portfolio.has_position(ticker)){
-            current_qty = portfolio.position_qty(ticker);
+        if (portfolio.has_position(id)){
+            current_qty = portfolio.position_qty(id);
         }
-        std::optional<OrderEvent> order = build_order_to_target_notional(ticker,portfolio.price(ticker),target_not, current_qty);
+        std::optional<OrderEvent> order = build_order_to_target_notional(id,portfolio.price(id),target_not, current_qty);
         if (order) {
             orders.push_back(*order);
         }
     }
 
     // If former positions on unwanted assets, flat them
-    for (const auto& [ticker, position] : portfolio.positions()) {
-        if (std::find(universe_.begin(), universe_.end(), ticker) == universe_.end()) {
-            std::optional<OrderEvent> order = flat_asset(ticker, position.get_quantity());
+    for (const auto& [id, position] : portfolio.positions()) {
+        if (std::find(universe_ids.begin(), universe_ids.end(), id) == universe_ids.end()) {
+            std::optional<OrderEvent> order = flat_asset(id, position.get_quantity());
             // Need to check if order is not None.
             if (order) {
                 orders.push_back(*order); // Pass *order bc order is an optional, so we want a pointer:refernce to the value inside it when it's not None. 

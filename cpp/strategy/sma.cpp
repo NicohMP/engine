@@ -1,7 +1,7 @@
 #include "sma.hpp"
 #include <stdexcept>
 
-SMAStrategy::SMAStrategy(size_t fw, size_t sw, double lt, double st, std::string t) : ticker(t), slow_window(sw), fast_window(fw), long_target(lt), short_target(st) {
+SMAStrategy::SMAStrategy(size_t fw, size_t sw, double lt, double st, SymbolId sid): symbol_id(sid), slow_window(sw), fast_window(fw), long_target(lt), short_target(st) {
     if (fast_window == 0){
         throw std::runtime_error("Window size can't be null");
     } else if (slow_window < fast_window) {
@@ -10,8 +10,8 @@ SMAStrategy::SMAStrategy(size_t fw, size_t sw, double lt, double st, std::string
 }
 
 std::optional<std::vector<OrderEvent>> SMAStrategy::on_market_event(const MarketEvent& mevent, const Portfolio& Portfolio) {
-    if (mevent.ticker != ticker){return std::nullopt;}
-    const Position& pos = Portfolio.get_position(ticker);
+    if (mevent.symbol_id != symbol_id){return std::nullopt;}
+    const Position& pos = Portfolio.get_position(symbol_id);
     const double close = mevent.close;
     if (slow_buffer_.size() < slow_window) { // while not enough values, fill queues, updates sums and hold
         slow_sum_ += close;
@@ -49,11 +49,11 @@ std::optional<std::vector<OrderEvent>> SMAStrategy::on_market_event(const Market
         const double delta = desired - current;
         if (delta > 0) {
             std::uint64_t id = generate_order_id();
-            OrderEvent order{id, ticker, TradeSide::Buy, delta, OrderType::Market, std::nullopt};
+            OrderEvent order{id,symbol_id, TradeSide::Buy, delta, OrderType::Market, std::nullopt};
             return std::vector<OrderEvent>{order};
         }if (delta < 0) {
             std::uint64_t id = generate_order_id();
-            OrderEvent order{id, ticker, TradeSide::Sell, -delta, OrderType::Market, std::nullopt};
+            OrderEvent order{id,symbol_id ,TradeSide::Sell, -delta, OrderType::Market, std::nullopt};
             return std::vector<OrderEvent>{order};
         }
         return std::nullopt;
@@ -63,12 +63,12 @@ std::optional<std::vector<OrderEvent>> SMAStrategy::on_market_event(const Market
         const double delta = desired - current;
         if (delta > 0) {
             std::uint64_t id = generate_order_id();
-            OrderEvent order{id, ticker, TradeSide::Buy, delta, OrderType::Market, std::nullopt};
+            OrderEvent order{id,symbol_id, TradeSide::Buy, delta, OrderType::Market, std::nullopt};
             return std::vector<OrderEvent>{order};
         }
         if (delta < 0) {
             std::uint64_t id = generate_order_id();
-            OrderEvent order{id, ticker, TradeSide::Sell, -delta, OrderType::Market, std::nullopt};
+            OrderEvent order{id,symbol_id, TradeSide::Sell, -delta, OrderType::Market, std::nullopt};
             return std::vector<OrderEvent>{order};
         }
         return std::nullopt;

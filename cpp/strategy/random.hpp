@@ -1,5 +1,6 @@
 # pragma once
 #include "base.hpp"
+#include "event_types.hpp"
 #include <vector>
 #include <string>
 #include <optional>
@@ -7,14 +8,14 @@
 
 class RandomStrategy : public Strategy {
     private:
-        std::vector<std::string> universe_; 
+        std::vector<SymbolId> universe_ids;
         double target_not_;
         std::mt19937 rng_;
         std::vector<double> probas_;
 
     public:
         RandomStrategy(
-            std::vector<std::string> universe,
+            std::vector<SymbolId> universes_ids,
             double target_notional,
             std::optional<std::vector<double>> probabilities = std::nullopt,
             unsigned int seed = 42);

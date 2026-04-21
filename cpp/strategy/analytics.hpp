@@ -1,7 +1,7 @@
 // analytics.hpp
 #pragma once
 #include "tick.hpp"
-#include "event_types.hpp"
+#include "core/event_types.hpp"
 #include <cstddef>
 #include <string>
 #include <vector>

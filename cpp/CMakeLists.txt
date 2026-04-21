@@ -30,6 +30,7 @@ add_executable(engine
     strategy/random.cpp
     risk/simple.cpp
     data_store/market_data_store.cpp
+    core/engine_core.cpp
 
 )
 
@@ -45,6 +46,7 @@ target_include_directories(engine PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/strategy
     ${CMAKE_CURRENT_SOURCE_DIR}/risk
     ${CMAKE_CURRENT_SOURCE_DIR}/data_store
+    ${CMAKE_CURRENT_SOURCE_DIR}/core
 )
 
 # Tell pybind11 to use CMake's modern Python discovery logic.
@@ -66,6 +68,7 @@ pybind11_add_module(engine_cpp
     execution/execution_engine.cpp
     risk/simple.cpp
     data_store/market_data_store.cpp
+    core/engine_core.cpp
 
 )
 
@@ -80,6 +83,7 @@ target_include_directories(engine_cpp PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/strategy
     ${CMAKE_CURRENT_SOURCE_DIR}/risk
     ${CMAKE_CURRENT_SOURCE_DIR}/data_store
+    ${CMAKE_CURRENT_SOURCE_DIR}/core
 )
 
 add_custom_command(TARGET engine_cpp POST_BUILD

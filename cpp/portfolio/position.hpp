@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include "event_types.hpp"
+#include "core/event_types.hpp"
 
 class Position {
     private:

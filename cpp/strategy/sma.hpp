@@ -3,7 +3,7 @@
 #include <deque>
 #include <optional>
 #include <vector>
-#include "event_types.hpp"
+#include "core/event_types.hpp"
 
 class  SMAStrategy : public Strategy {
     private:

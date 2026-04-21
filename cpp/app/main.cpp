@@ -20,9 +20,8 @@ int main() {
     const int n_runs = 1000;
 
     std::vector<Tick> ticks = parse_csv("ml/data/ohlcv_daily_2y.csv");
-    std::vector<MarketEvent> mevents = ticks_to_mevents(ticks);
 
-    BuildResult res = MarketDataStore::from_market_events(mevents);
+    BuildResult res = MarketDataStore::from_ticks(ticks);
     BuildStats stats = res.stats;
     std::cout << "=== MarketDataStore Build Stats ===\n";
     std::cout << "Input rows: " << stats.input_rows << "\n";

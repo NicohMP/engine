@@ -4,6 +4,7 @@
 #include "event_types.hpp"
 #include "execution_engine.hpp"
 #include "risk/base.hpp"
+#include "data_store/market_data_store.hpp"
 #include <vector>
 #include <deque>
 #include <string>
@@ -23,7 +24,7 @@ class Backtester {
         static constexpr double kFeeRateStandard = 0.0010;  // 0.10%
         static constexpr double kFeeRateDiscount = 0.00075; // 0.075%
 
-        std::vector<MarketEvent> mevents_;
+        const MarketDataStore& data_;
         Portfolio portfolio;
         std::shared_ptr<RiskManagerBase> risk_manager_; // shared pointer is automatically nullptr when nothig is passed so no need for std::optional<> anymore
         std::shared_ptr<Strategy> strategy_;
@@ -36,14 +37,14 @@ class Backtester {
     
     public:
         Backtester(
-            const std::vector<MarketEvent>& mevents,
+            const MarketDataStore& data,
             std::shared_ptr<Strategy> strategy,
             Portfolio portfolio,
             std::shared_ptr<RiskManagerBase> risk_manager = nullptr,
             double fee_rate = kFeeRateStandard
         );
         Backtester(
-            const std::vector<MarketEvent>& mevents,
+            const MarketDataStore& data,
             std::shared_ptr<Strategy> strategy,
             Portfolio portfolio,
             double fee_rate

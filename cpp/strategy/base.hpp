@@ -19,13 +19,14 @@ class Strategy {
 
 std::optional<OrderEvent> build_order_to_target_notional(
     const std::string& ticker, 
+    const SymbolId& id, 
     double price, 
     double target_notional,
     double current_quantity
 );
 
 
-std::optional<OrderEvent> flat_asset(const std::string& ticker, double current_quantity);
+std::optional<OrderEvent> flat_asset(const std::string& ticker,const SymbolId& id, double current_quantity);
 
 inline bool is_close(double a, double b, double rtol = 1e-5, double atol = 1e-8) {
     return std::abs(a - b) <= (atol + rtol * std::abs(b));

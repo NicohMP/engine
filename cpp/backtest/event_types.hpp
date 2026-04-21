@@ -8,10 +8,12 @@
 
 enum class TradeSide { Buy, Sell };
 enum class OrderType { Market, Limit, Stop };
+using SymbolId = std::uint32_t;
 
 
 struct MarketEvent {
     int64_t timestamp;
+    SymbolId symbol_id;
     std::string ticker;
     double open;
     double high;
@@ -22,6 +24,7 @@ struct MarketEvent {
 
 struct OrderEvent {
     std::uint64_t id;
+    SymbolId symbol_id;
     std::string ticker;
     TradeSide side;
     std::optional<double> quantity;
@@ -32,6 +35,7 @@ struct OrderEvent {
 struct FillEvent {
     std::uint64_t order_id;
     int64_t timestamp;
+    SymbolId symbol_id;
     std::string ticker;
     TradeSide side;
     double quantity;
@@ -44,5 +48,3 @@ using Event = std::variant<MarketEvent, OrderEvent, FillEvent>;
 std::uint64_t generate_order_id();
 void reset_order_id_counter(std::uint64_t start_id = 1);
 
-std::vector<MarketEvent> ticks_to_mevents(const std::vector<Tick>& ticks);
-MarketEvent tick_to_mevent(const Tick& tick);

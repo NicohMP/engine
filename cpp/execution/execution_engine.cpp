@@ -25,6 +25,7 @@ void ExecutionEngine::make_fill(std::vector<FillEvent>& fills,const OrderEvent& 
     fills.push_back(FillEvent{
         order.id,
         mevent.timestamp,
+        order.symbol_id,
         order.ticker,
         order.side,
         fill_quantity,
@@ -40,7 +41,7 @@ std::vector<FillEvent> ExecutionEngine::fill_orders(const MarketEvent& mevent) {
     still_pending.reserve(pending_orders.size());
 
     for (const OrderEvent& order : pending_orders) {
-        if (order.ticker != mevent.ticker) { // Convention: this bar can only fill orders for its own symbol.
+        if (order.symbol_id != mevent.symbol_id) { // Convention: this bar can only fill orders for its own symbol.
             still_pending.push_back(order);
             continue;
         }

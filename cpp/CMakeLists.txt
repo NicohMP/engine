@@ -12,6 +12,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Use standard C++17 instead of compiler-specific extensions like gnu++17.
 set(CMAKE_CXX_EXTENSIONS OFF)
+enable_testing()
 
 # Build the normal command-line executable called `engine`.
 add_executable(engine
@@ -28,6 +29,7 @@ add_executable(engine
     strategy/buy_and_hold.cpp
     strategy/random.cpp
     risk/simple.cpp
+    data_store/market_data_store.cpp
 
 )
 
@@ -42,6 +44,7 @@ target_include_directories(engine PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/portfolio
     ${CMAKE_CURRENT_SOURCE_DIR}/strategy
     ${CMAKE_CURRENT_SOURCE_DIR}/risk
+    ${CMAKE_CURRENT_SOURCE_DIR}/data_store
 )
 
 # Tell pybind11 to use CMake's modern Python discovery logic.
@@ -82,3 +85,17 @@ add_custom_command(TARGET engine_cpp POST_BUILD
         ${CMAKE_CURRENT_SOURCE_DIR}/python/engine_cpp.pyi
         $<TARGET_FILE_DIR:engine_cpp>/engine_cpp.pyi
 )
+
+add_executable(test_data_store
+    tests/test_data_store.cpp
+    data_store/market_data_store.cpp
+)
+
+target_include_directories(test_data_store PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/data_store
+    ${CMAKE_CURRENT_SOURCE_DIR}/backtest
+    ${CMAKE_CURRENT_SOURCE_DIR}/data
+)
+
+add_test(NAME test_data_store COMMAND test_data_store)

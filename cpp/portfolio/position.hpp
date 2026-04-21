@@ -5,12 +5,12 @@
 
 class Position {
     private:
-        std::string ticker;
+        SymbolId symbol_id;
         double quantity;
 
     public:
-        Position(const std::string& ticker, double initial_quantity);
+        Position(const SymbolId& id, double initial_quantity);
         double get_quantity() const { return quantity; }
-        std::string get_ticker() const { return ticker; }
+        SymbolId get_id() const { return symbol_id; }
         void update(const FillEvent& fevent);
 };

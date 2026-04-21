@@ -59,11 +59,11 @@ SymbolId MarketDataStore::get_or_add_id(const std::string& raw_ticker) {
     return id;
 }
 
-MarketDataStore::MarketDataStore(std::vector<Bar> bars,
+MarketDataStore::MarketDataStore(std::vector<MarketEvent> events,
             std::vector<TimeSlice> slices,
             std::unordered_map<SymbolId, std::string> id_to_symbol,
             std::unordered_map<std::string, SymbolId> symbol_to_id
-        ) : bars_(std::move(bars)),
+        ) : events_(std::move(events)),
             slices_(std::move(slices)),
             id_to_symbol_(std::move(id_to_symbol)),
             symbol_to_id_(std::move(symbol_to_id))
@@ -71,14 +71,14 @@ MarketDataStore::MarketDataStore(std::vector<Bar> bars,
 
 
 namespace {
-bool is_valid_row(const MarketEvent& e) {
-    if (e.timestamp <= 0) return false;
-    if (!std::isfinite(e.open) || !std::isfinite(e.high) ||
-        !std::isfinite(e.low)  || !std::isfinite(e.close) ||
-        !std::isfinite(e.volume)) return false;
-    if (e.open <= 0.0 || e.high <= 0.0 || e.low <= 0.0 || e.close <= 0.0) return false;
-    if (e.volume < 0.0) return false;
-    if (e.low > e.open || e.low > e.close || e.high < e.open || e.high < e.close) return false;
+bool is_valid_row(const Tick& t) {
+    if (t.timestamp <= 0) return false;
+    if (!std::isfinite(t.open) || !std::isfinite(t.high) ||
+        !std::isfinite(t.low)  || !std::isfinite(t.close) ||
+        !std::isfinite(t.volume)) return false;
+    if (t.open <= 0.0 || t.high <= 0.0 || t.low <= 0.0 || t.close <= 0.0) return false;
+    if (t.volume < 0.0) return false;
+    if (t.low > t.open || t.low > t.close || t.high < t.open || t.high < t.close) return false;
     return true;
 }
 }
@@ -92,7 +92,17 @@ std::string MarketDataStore::get_symbol(const SymbolId& id) const {
 }
 
 
-BuildResult MarketDataStore::from_market_events(std::vector<MarketEvent> rows){
+SymbolId MarketDataStore::get_id(const std::string& ticker) const {
+    std::string clean_t = normalize_ticker(ticker);
+    auto it = symbol_to_id_.find(clean_t);
+    if (it == symbol_to_id_.end()) {
+        throw std::runtime_error("No id found for ticker: " + clean_t);
+    }
+    return it->second;
+}
+
+
+BuildResult MarketDataStore::from_ticks(std::vector<Tick> rows){
 
     // Declare build stats
     BuildStats stats{};
@@ -101,10 +111,10 @@ BuildResult MarketDataStore::from_market_events(std::vector<MarketEvent> rows){
     // Declare MarketDataStore arguments
     std::unordered_map<SymbolId, std::string> id_to_symbol;
     std::unordered_map<std::string, SymbolId> symbol_to_id;
-    std::vector<Bar> bars;
-    bars.reserve(rows.size());
-    // First pass : build bars and id/symbol maps
-    for (const MarketEvent& row : rows){
+    std::vector<MarketEvent> events;
+    events.reserve(rows.size());
+    // First pass : build events and id/symbol maps
+    for (const Tick& row : rows){
         if (!is_valid_row(row)) {
             ++stats.dropped_invalid;
             continue;
@@ -115,51 +125,51 @@ BuildResult MarketDataStore::from_market_events(std::vector<MarketEvent> rows){
             continue;
         }
         SymbolId id = get_add_symbol_build(ticker,symbol_to_id, id_to_symbol);
-        Bar bar{row.timestamp,id,row.open, row.high,row.low, row.close, row.volume};
-        bars.push_back(bar);
+        MarketEvent event{row.timestamp,id,ticker, row.open, row.high,row.low, row.close, row.volume};
+        events.push_back(event);
     }
-    // Sort bars by timestamp
-    std::sort(bars.begin(), bars.end(), [](const Bar& a, const Bar& b) {
+    // Sort events by timestamp
+    std::sort(events.begin(), events.end(), [](const MarketEvent& a, const MarketEvent& b) {
     if (a.timestamp != b.timestamp) return a.timestamp < b.timestamp;
     return a.symbol_id < b.symbol_id;
     });
 
     // Dedupe
-    if (!bars.empty()) {
+    if (!events.empty()) {
         size_t write = 1; // next kept slot
-        for (size_t read = 1; read < bars.size(); ++read) {
+        for (size_t read = 1; read < events.size(); ++read) {
             const bool same_key =
-                bars[read].timestamp == bars[write - 1].timestamp &&
-                bars[read].symbol_id == bars[write - 1].symbol_id;
+                events[read].timestamp == events[write - 1].timestamp &&
+                events[read].symbol_id == events[write - 1].symbol_id;
 
             if (same_key) { // policy last-wins: overwrite previous kept row
-                bars[write - 1] = bars[read];
+                events[write - 1] = events[read];
                 ++stats.dropped_duplicates;
             } else {
-                bars[write] = bars[read];
+                events[write] = events[read];
                 ++write;
             }
         }
-        bars.resize(write);
+        events.resize(write);
     }
 
     std::vector<TimeSlice> slices;
     size_t start = 0; size_t i = 0;
-    while (i < bars.size()){
-        while (i < bars.size() && bars[start].timestamp == bars[i].timestamp){
+    while (i < events.size()){
+        while (i < events.size() && events[start].timestamp == events[i].timestamp){
             i++;
         }
-        slices.push_back(TimeSlice{bars[start].timestamp, start, i});
+        slices.push_back(TimeSlice{events[start].timestamp, start, i});
         start = i;
     }
 
-    stats.kept_rows = bars.size();
+    stats.kept_rows = events.size();
     stats.num_symbols = id_to_symbol.size();
     stats.num_slices = slices.size();
 
     BuildResult result{
         MarketDataStore(
-            std::move(bars),
+            std::move(events),
             std::move(slices),
             std::move(id_to_symbol),
             std::move(symbol_to_id)

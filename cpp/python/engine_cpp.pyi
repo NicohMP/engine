@@ -6,17 +6,14 @@ from typing import overload
 
 SymbolId = int
 
-
 class TradeSide(Enum):
     Buy: TradeSide
     Sell: TradeSide
-
 
 class OrderType(Enum):
     Market: OrderType
     Limit: OrderType
     Stop: OrderType
-
 
 class Tick:
     timestamp: int
@@ -37,12 +34,10 @@ class Tick:
         close: float,
     ) -> None: ...
 
-
 class TimeSlice:
     timestamp: int
     begin_idx: int
     end_idx: int
-
 
 class BuildStats:
     input_rows: int
@@ -52,7 +47,6 @@ class BuildStats:
     num_symbols: int
     num_slices: int
     def __init__(self) -> None: ...
-
 
 class MarketEvent:
     timestamp: int
@@ -73,7 +67,6 @@ class MarketEvent:
         close: float,
     ) -> None: ...
 
-
 class MarketDataStore:
     @staticmethod
     def from_ticks(rows: Sequence[Tick]) -> BuildResult: ...
@@ -83,11 +76,9 @@ class MarketDataStore:
     def bars(self) -> list[MarketEvent]: ...
     def slices(self) -> list[TimeSlice]: ...
 
-
 class BuildResult:
     store: MarketDataStore
     stats: BuildStats
-
 
 class OrderEvent:
     id: int
@@ -117,7 +108,6 @@ class OrderEvent:
         id: int = 0,
     ) -> None: ...
 
-
 class FillEvent:
     order_id: int
     timestamp: int
@@ -137,17 +127,17 @@ class FillEvent:
         fees: float,
     ) -> None: ...
 
-
 class Position:
     def __init__(self, symbol_id: SymbolId, initial_quantity: float = 0.0) -> None: ...
     def get_quantity(self) -> float: ...
     def get_id(self) -> SymbolId: ...
     def update(self, fill_event: FillEvent) -> None: ...
 
-
 class Portfolio:
     @overload
-    def __init__(self, init_positions: Sequence[Position], init_cash: float) -> None: ...
+    def __init__(
+        self, init_positions: Sequence[Position], init_cash: float
+    ) -> None: ...
     @overload
     def __init__(self, init_cash: float) -> None: ...
     def get_cash(self) -> float: ...
@@ -162,19 +152,16 @@ class Portfolio:
     def gross_exposure(self) -> float: ...
     def net_exposure(self) -> float: ...
 
-
 class ExecutionEngine:
     def __init__(self, fee_rate: float = 0.0010) -> None: ...
     def pass_order(self, order: OrderEvent) -> None: ...
     def fill_orders(self, market_event: MarketEvent) -> list[FillEvent]: ...
-
 
 class Strategy:
     def __init__(self) -> None: ...
     def on_market_event(
         self, mevent: MarketEvent, portfolio: Portfolio
     ) -> list[OrderEvent] | None: ...
-
 
 class RandomStrategy(Strategy):
     def __init__(
@@ -185,13 +172,11 @@ class RandomStrategy(Strategy):
         seed: int = 42,
     ) -> None: ...
 
-
 class RiskManagerBase:
     def __init__(self) -> None: ...
     def accept_order_batch(
         self, orders: Sequence[OrderEvent], portfolio: Portfolio
     ) -> list[OrderEvent] | None: ...
-
 
 class RiskLimits:
     max_position_weight: float
@@ -206,11 +191,9 @@ class RiskLimits:
         max_nb_positions: float = 1000.0,
     ) -> None: ...
 
-
 class SimpleRiskManager(RiskManagerBase):
     def __init__(self, limits: RiskLimits = ...) -> None: ...
     def acceptable(self, portfolio: Portfolio) -> bool: ...
-
 
 class Backtester:
     @overload
@@ -236,7 +219,7 @@ class Backtester:
     def get_fills(self) -> list[FillEvent]: ...
     def get_fee_rate(self) -> float: ...
 
-
 def add(a: int, b: int) -> int: ...
 def generate_order_id() -> int: ...
 def reset_order_id_counter(start_id: int = 1) -> None: ...
+def parse_csv(path: str) -> list[Tick]: ...

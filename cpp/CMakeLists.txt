@@ -60,6 +60,7 @@ find_package(pybind11 CONFIG REQUIRED)
 # Python will import this with: `import engine_cpp`.
 pybind11_add_module(engine_cpp
     python/bindings.cpp
+    data/parse_csv.cpp
     portfolio/portfolio.cpp
     portfolio/position.cpp
     core/event_types.cpp

@@ -2,7 +2,7 @@
 #include <pybind11/stl.h>
 
 #include "backtest/backtester.hpp"
-#include "backtest/event_types.hpp"
+#include "core/event_types.hpp"
 #include "data/tick.hpp"
 #include "data_store/market_data_store.hpp"
 #include "execution/execution_engine.hpp"
@@ -12,6 +12,8 @@
 #include "risk/simple.hpp"
 #include "strategy/base.hpp"
 #include "strategy/random.hpp"
+#include "data/parse_csv.hpp"
+#include "data/tick.hpp"
 
 #include <utility>
 
@@ -22,6 +24,13 @@ int add(int a, int b) { return a + b; }
 class PyStrategy : public Strategy, public py::trampoline_self_life_support {
 public:
     using Strategy::Strategy;
+    void reset() override {
+        PYBIND11_OVERRIDE_PURE(
+            void,
+            Strategy,
+            reset
+        );
+    }
     std::optional<std::vector<OrderEvent>> on_market_event(
         const MarketEvent& mevent,
         const Portfolio& portfolio
@@ -39,6 +48,13 @@ public:
 class PyRiskManager : public RiskManagerBase, public py::trampoline_self_life_support {
 public:
     using RiskManagerBase::RiskManagerBase;
+    void reset() override {
+        PYBIND11_OVERRIDE_PURE(
+            void,
+            RiskManagerBase,
+            reset
+        );
+    }
     std::optional<std::vector<OrderEvent>> accept_order_batch(
         const std::vector<OrderEvent>& orders,
         const Portfolio& portfolio
@@ -358,4 +374,7 @@ PYBIND11_MODULE(engine_cpp, m) {
         .def("get_orders", &Backtester::get_orders)
         .def("get_fills", &Backtester::get_fills)
         .def("get_fee_rate", &Backtester::get_fee_rate);
+
+    m.def("parse_csv", &parse_csv, py::arg("path"));
+
 }

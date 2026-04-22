@@ -15,5 +15,6 @@ class BuyHoldStrategy : public Strategy {
         BuyHoldStrategy(
             std::vector<SymbolId> u_ids,
             std::optional<std::unordered_map<SymbolId,double>> distribution = std::nullopt);
-        virtual std::optional<std::vector<OrderEvent>> on_market_event(const MarketEvent& mevent, const Portfolio& Portfolio) override;    
+        virtual std::optional<std::vector<OrderEvent>> on_market_event(const MarketEvent& mevent, const Portfolio& Portfolio) override;   
+        virtual void reset() override ;
 };

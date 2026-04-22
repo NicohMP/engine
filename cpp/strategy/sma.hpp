@@ -27,5 +27,5 @@ class  SMAStrategy : public Strategy {
     public: 
         SMAStrategy(size_t fast_window, size_t slow_window,double long_target,double short_target, SymbolId symbol_id);
         virtual std::optional<std::vector<OrderEvent>> on_market_event(const MarketEvent& mevent, const Portfolio& Portfolio) override;
- 
+        virtual void reset() override {};
 };

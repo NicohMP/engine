@@ -94,3 +94,8 @@ std::optional<std::vector<OrderEvent>> BuyHoldStrategy::on_market_event(const Ma
     return orders;
 
 }
+
+
+void BuyHoldStrategy::reset(){
+    invested_ = false;
+}

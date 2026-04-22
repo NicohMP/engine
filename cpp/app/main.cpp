@@ -11,6 +11,7 @@
 
 int main() {
     const std::vector<std::string> tickers = {"XOM", "AAPL", "BNP.PA", "BRK-B"};
+    // const std::vector<std::string> tickers = {"AAPL"};
     const int n_runs = 1000;
     const std::vector<Tick> ticks = parse_csv("ml/data/ohlcv_daily_2y.csv");
 

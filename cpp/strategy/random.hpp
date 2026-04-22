@@ -24,5 +24,7 @@ class RandomStrategy : public Strategy {
             const MarketEvent& mevent, 
             const Portfolio& Portfolio) override;
 
+        virtual void reset() override {};
+
             
 };

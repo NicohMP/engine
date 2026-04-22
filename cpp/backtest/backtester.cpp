@@ -22,7 +22,7 @@ Backtester::Backtester(
 
 
 void Backtester::run() {
-    engine.reset();
+    engine.reset_all();
     for (const TimeSlice& slice : data_.slices()) {
         for (size_t i= slice.begin_idx; i<slice.end_idx; i++){
             const MarketEvent& mevent = data_.bars()[i];

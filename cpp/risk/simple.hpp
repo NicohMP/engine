@@ -25,4 +25,5 @@ class SimpleRiskManager: public RiskManagerBase {
         SimpleRiskManager(RiskLimits limits);
         virtual std::optional<std::vector<OrderEvent>> accept_order_batch(const std::vector<OrderEvent>& orders, const Portfolio& portfolio) const override;
         bool acceptable(const Portfolio& portfolio) const;
+        virtual void reset() override {};
 };

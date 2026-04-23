@@ -32,6 +32,7 @@ add_executable(engine
     risk/simple.cpp
     data_store/market_data_store.cpp
     simulation/simulator.cpp
+    strategy/rolling_moments.cpp
 
 )
 
@@ -107,3 +108,15 @@ target_include_directories(test_data_store PRIVATE
 )
 
 add_test(NAME test_data_store COMMAND test_data_store)
+
+add_executable(test_rolling_moments
+    tests/test_rolling_moments.cpp
+    strategy/rolling_moments.cpp
+)
+
+target_include_directories(test_rolling_moments PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/strategy
+)
+
+add_test(NAME test_rolling_moments COMMAND test_rolling_moments)

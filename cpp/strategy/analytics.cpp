@@ -1,5 +1,5 @@
 #include "analytics.hpp"
-#include "event_types.hpp"
+#include "core/event_types.hpp"
 #include <vector>
 #include <string>
 #include <algorithm>

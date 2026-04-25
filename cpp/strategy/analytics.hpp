@@ -1,6 +1,6 @@
 // analytics.hpp
 #pragma once
-#include "tick.hpp"
+#include "data/extract/tick.hpp"
 #include "core/event_types.hpp"
 #include <cstddef>
 #include <string>

@@ -3,7 +3,7 @@
 #include <optional>
 #include <variant>
 #include <vector>
-#include "tick.hpp"
+#include "data/extract/tick.hpp"
 
 enum class TradeSide { Buy, Sell };
 enum class OrderType { Market, Limit, Stop };

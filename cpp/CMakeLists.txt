@@ -33,6 +33,10 @@ add_executable(engine
     data_store/market_data_store.cpp
     simulation/simulator.cpp
     strategy/rolling_moments.cpp
+    strategy/online_feature_state.hpp
+    strategy/online_feature_state.cpp
+    strategy/cross_section.hpp
+    strategy/cross_section.cpp
 
 )
 
@@ -120,3 +124,34 @@ target_include_directories(test_rolling_moments PRIVATE
 )
 
 add_test(NAME test_rolling_moments COMMAND test_rolling_moments)
+
+add_executable(test_online_feature_state
+    tests/test_online_feature_state.cpp
+    strategy/online_feature_state.cpp
+    strategy/rolling_moments.cpp
+)
+
+target_include_directories(test_online_feature_state PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/strategy
+    ${CMAKE_CURRENT_SOURCE_DIR}/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/data
+)
+
+add_test(NAME test_online_feature_state COMMAND test_online_feature_state)
+
+add_executable(test_cross_section
+    tests/test_cross_section.cpp
+    strategy/cross_section.cpp
+    strategy/online_feature_state.cpp
+    strategy/rolling_moments.cpp
+)
+
+target_include_directories(test_cross_section PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/strategy
+    ${CMAKE_CURRENT_SOURCE_DIR}/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/data
+)
+
+add_test(NAME test_cross_section COMMAND test_cross_section)

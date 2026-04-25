@@ -1,7 +1,7 @@
 #pragma once
 
 #include "portfolio.hpp"
-#include "tick.hpp"
+#include "data/extract/tick.hpp"
 #include "core/event_types.hpp"
 #include <string>
 #include <optional>

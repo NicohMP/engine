@@ -2,7 +2,7 @@
 #include <optional>
 #include <vector>
 #include "core/event_types.hpp"
-#include "portfolio.hpp"
+#include "portfolio/portfolio.hpp"
 
 
 class RiskManagerBase {

@@ -1,6 +1,6 @@
 #pragma once
 #include "core/event_types.hpp"
-#include "tick.hpp"
+#include "data/extract/tick.hpp"
 #include <cstdint>
 #include <vector>
 #include <unordered_map>

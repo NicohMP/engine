@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 #include "backtester.hpp"
-#include "data_store/market_data_store.hpp"
-#include "parse_csv.hpp"
+#include "data/store/market_data_store.hpp"
+#include "data/extract/parse_csv.hpp"
 #include "portfolio.hpp"
 #include "random.hpp"
 

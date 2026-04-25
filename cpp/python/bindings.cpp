@@ -3,8 +3,8 @@
 
 #include "backtest/backtester.hpp"
 #include "core/event_types.hpp"
-#include "data/tick.hpp"
-#include "data_store/market_data_store.hpp"
+#include "data/extract/tick.hpp"
+#include "data/store/market_data_store.hpp"
 #include "execution/execution_engine.hpp"
 #include "portfolio/portfolio.hpp"
 #include "portfolio/position.hpp"
@@ -12,8 +12,7 @@
 #include "risk/simple.hpp"
 #include "strategy/base.hpp"
 #include "strategy/random.hpp"
-#include "data/parse_csv.hpp"
-#include "data/tick.hpp"
+#include "data/extract/parse_csv.hpp"
 
 #include <utility>
 

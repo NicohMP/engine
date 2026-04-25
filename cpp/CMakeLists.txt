@@ -17,7 +17,7 @@ enable_testing()
 # Build the normal command-line executable called `engine`.
 add_executable(engine
     app/main.cpp
-    data/parse_csv.cpp
+    data/extract/parse_csv.cpp
     backtest/backtester.cpp
     core/event_types.cpp
     core/engine_core.cpp
@@ -30,13 +30,11 @@ add_executable(engine
     strategy/buy_and_hold.cpp
     strategy/random.cpp
     risk/simple.cpp
-    data_store/market_data_store.cpp
+    data/store/market_data_store.cpp
     simulation/simulator.cpp
     strategy/rolling_moments.cpp
-    strategy/online_feature_state.hpp
-    strategy/online_feature_state.cpp
-    strategy/cross_section.hpp
-    strategy/cross_section.cpp
+    data/features/online_feature_state.cpp
+    data/features/cross_section.cpp
 
 )
 
@@ -47,11 +45,13 @@ target_include_directories(engine PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/app
     ${CMAKE_CURRENT_SOURCE_DIR}/backtest
     ${CMAKE_CURRENT_SOURCE_DIR}/data
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/extract
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/store
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/features
     ${CMAKE_CURRENT_SOURCE_DIR}/execution
     ${CMAKE_CURRENT_SOURCE_DIR}/portfolio
     ${CMAKE_CURRENT_SOURCE_DIR}/strategy
     ${CMAKE_CURRENT_SOURCE_DIR}/risk
-    ${CMAKE_CURRENT_SOURCE_DIR}/data_store
     ${CMAKE_CURRENT_SOURCE_DIR}/core
 )
 
@@ -65,7 +65,7 @@ find_package(pybind11 CONFIG REQUIRED)
 # Python will import this with: `import engine_cpp`.
 pybind11_add_module(engine_cpp
     python/bindings.cpp
-    data/parse_csv.cpp
+    data/extract/parse_csv.cpp
     portfolio/portfolio.cpp
     portfolio/position.cpp
     core/event_types.cpp
@@ -74,7 +74,7 @@ pybind11_add_module(engine_cpp
     backtest/backtester.cpp
     execution/execution_engine.cpp
     risk/simple.cpp
-    data_store/market_data_store.cpp
+    data/store/market_data_store.cpp
     core/engine_core.cpp
 
 )
@@ -85,11 +85,13 @@ target_include_directories(engine_cpp PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/app
     ${CMAKE_CURRENT_SOURCE_DIR}/backtest
     ${CMAKE_CURRENT_SOURCE_DIR}/data
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/extract
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/store
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/features
     ${CMAKE_CURRENT_SOURCE_DIR}/execution
     ${CMAKE_CURRENT_SOURCE_DIR}/portfolio
     ${CMAKE_CURRENT_SOURCE_DIR}/strategy
     ${CMAKE_CURRENT_SOURCE_DIR}/risk
-    ${CMAKE_CURRENT_SOURCE_DIR}/data_store
     ${CMAKE_CURRENT_SOURCE_DIR}/core
 )
 
@@ -101,12 +103,13 @@ add_custom_command(TARGET engine_cpp POST_BUILD
 
 add_executable(test_data_store
     tests/test_data_store.cpp
-    data_store/market_data_store.cpp
+    data/store/market_data_store.cpp
 )
 
 target_include_directories(test_data_store PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/data_store
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/store
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/extract
     ${CMAKE_CURRENT_SOURCE_DIR}/backtest
     ${CMAKE_CURRENT_SOURCE_DIR}/data
 )
@@ -127,12 +130,15 @@ add_test(NAME test_rolling_moments COMMAND test_rolling_moments)
 
 add_executable(test_online_feature_state
     tests/test_online_feature_state.cpp
-    strategy/online_feature_state.cpp
+    data/features/online_feature_state.cpp
     strategy/rolling_moments.cpp
 )
 
 target_include_directories(test_online_feature_state PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/features
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/extract
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/store
     ${CMAKE_CURRENT_SOURCE_DIR}/strategy
     ${CMAKE_CURRENT_SOURCE_DIR}/core
     ${CMAKE_CURRENT_SOURCE_DIR}/data
@@ -142,13 +148,16 @@ add_test(NAME test_online_feature_state COMMAND test_online_feature_state)
 
 add_executable(test_cross_section
     tests/test_cross_section.cpp
-    strategy/cross_section.cpp
-    strategy/online_feature_state.cpp
+    data/features/cross_section.cpp
+    data/features/online_feature_state.cpp
     strategy/rolling_moments.cpp
 )
 
 target_include_directories(test_cross_section PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/features
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/extract
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/store
     ${CMAKE_CURRENT_SOURCE_DIR}/strategy
     ${CMAKE_CURRENT_SOURCE_DIR}/core
     ${CMAKE_CURRENT_SOURCE_DIR}/data

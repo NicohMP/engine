@@ -1,5 +1,5 @@
-#include "strategy/cross_section.hpp"
-#include "strategy/online_feature_state.hpp"
+#include "data/features/cross_section.hpp"
+#include "data/features/online_feature_state.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -80,4 +80,3 @@ int main() {
 
     return 0;
 }
-

@@ -1,4 +1,4 @@
-#include "strategy/online_feature_state.hpp"
+#include "data/features/online_feature_state.hpp"
 
 #include <cassert>
 #include <cmath>

@@ -1,4 +1,6 @@
 #include "data/features/cross_section.hpp"
+#include "data/features/feature_id.hpp"
+#include "data/features/feature_schema.hpp"
 #include "data/features/online_feature_state.hpp"
 
 #include <cassert>
@@ -20,24 +22,32 @@ int main() {
     OnlineFeatureState s1(id1, 3);
     OnlineFeatureState s2(id2, 3);
     OnlineFeatureState s3(id3, 3);
+    FeatureSchema schema({FeatureId::Ret1D});
 
     // Warmup first close.
-    assert(!s1.push(mevent(1, id1, 100.0)));
-    assert(!s2.push(mevent(1, id2, 100.0)));
-    assert(!s3.push(mevent(1, id3, 100.0)));
+    bool pushed = s1.push(mevent(1, id1, 100.0));
+    assert(!pushed);
+    pushed = s2.push(mevent(1, id2, 100.0));
+    assert(!pushed);
+    pushed = s3.push(mevent(1, id3, 100.0));
+    assert(!pushed);
 
     // Second close creates ret_1d.
-    assert(s1.push(mevent(2, id1, 110.0))); // +10%
-    assert(s2.push(mevent(2, id2, 90.0)));  // -10%
-    assert(s3.push(mevent(2, id3, 120.0))); // +20%
+    pushed = s1.push(mevent(2, id1, 110.0)); // +10%
+    assert(pushed);
+    pushed = s2.push(mevent(2, id2, 90.0));  // -10%
+    assert(pushed);
+    pushed = s3.push(mevent(2, id3, 120.0)); // +20%
+    assert(pushed);
 
     CrossSectionSnapshot cs({id3, id1, id2}, {"ret_1d"});
     std::vector<FeatureRow> rows{
-        s1.to_feature_row_ret_1d(),
-        s2.to_feature_row_ret_1d(),
-        s3.to_feature_row_ret_1d(),
+        s1.to_feature_row(schema),
+        s2.to_feature_row(schema),
+        s3.to_feature_row(schema),
     };
-    assert(cs.push_snapshot(2, rows));
+    bool ok = cs.push_snapshot(2, rows);
+    assert(ok);
     assert(cs.ready());
 
     const CrossSectionResult out = cs.compute();
@@ -67,11 +77,12 @@ int main() {
     // A snapshot containing NaN is accepted but flagged invalid by return value.
     cs.reset();
     const double kNaN = std::numeric_limits<double>::quiet_NaN();
-    assert(!cs.push_snapshot(3, {
+    ok = cs.push_snapshot(3, {
         FeatureRow{id1, {kNaN}},
         FeatureRow{id2, {0.0}},
         FeatureRow{id3, {0.1}},
-    }));
+    });
+    assert(!ok);
     const CrossSectionResult out_nan = cs.compute();
     assert(!out_nan.rank_pct[0][0].has_value());
     assert(!out_nan.zscore[0][0].has_value());

@@ -1,3 +1,5 @@
+#include "data/features/feature_id.hpp"
+#include "data/features/feature_schema.hpp"
 #include "data/features/online_feature_state.hpp"
 
 #include <cassert>
@@ -23,45 +25,57 @@ int main() {
     {
         const SymbolId id = 7;
         OnlineFeatureState state(id, 3);
+        FeatureSchema schema({
+            FeatureId::Ret1D,
+            FeatureId::LogRet1D,
+            FeatureId::RetVar,
+            FeatureId::RetVol,
+            FeatureId::PriceZ,
+            FeatureId::VolumeZ,
+            FeatureId::HighLowRange,
+            FeatureId::CloseToSma,
+        });
 
         // First bar: initializes previous close only.
-        assert(!state.push(make_event(1, id, 100.0)));
+        bool pushed = state.push(make_event(1, id, 100.0));
+        assert(!pushed);
         assert(!state.ready());
-        assert(state.price_z() == std::nullopt);
-
-        bool ret_threw = false;
-        try {
-            (void)state.ret_1d();
-        } catch (const std::runtime_error&) {
-            ret_threw = true;
-        }
-        assert(ret_threw);
+        FeatureRow row = state.to_feature_row(schema);
+        assert(row.symbol_id == id);
+        assert(row.values.size() == schema.size());
+        assert(std::isnan(row.values[schema.index_of(FeatureId::Ret1D)]));
+        assert(std::isnan(row.values[schema.index_of(FeatureId::LogRet1D)]));
+        assert(std::isnan(row.values[schema.index_of(FeatureId::RetVar)]));
+        assert(std::isnan(row.values[schema.index_of(FeatureId::PriceZ)]));
+        assert(std::abs(row.values[schema.index_of(FeatureId::HighLowRange)]) < 1e-12);
 
         // Second bar: first return is available.
-        assert(state.push(make_event(2, id, 110.0)));
+        pushed = state.push(make_event(2, id, 110.0));
+        assert(pushed);
         assert(!state.ready());
-        assert(std::abs(state.ret_1d() - 0.1) < 1e-12);
-
-        bool vol_threw = false;
-        try {
-            (void)state.vol_pop();
-        } catch (const std::runtime_error&) {
-            vol_threw = true;
-        }
-        assert(vol_threw);
+        row = state.to_feature_row(schema);
+        assert(std::abs(row.values[schema.index_of(FeatureId::Ret1D)] - 0.1) < 1e-12);
+        assert(std::abs(row.values[schema.index_of(FeatureId::LogRet1D)] - std::log(1.1)) < 1e-12);
+        assert(std::isnan(row.values[schema.index_of(FeatureId::RetVar)]));
 
         // Third bar: price rolling window ready, return rolling window still warming up.
-        assert(state.push(make_event(3, id, 121.0)));
+        pushed = state.push(make_event(3, id, 121.0));
+        assert(pushed);
         assert(!state.ready());
-        assert(std::abs(state.ret_1d() - 0.1) < 1e-12);
-        const auto z = state.price_z();
-        assert(z.has_value());
+        row = state.to_feature_row(schema);
+        assert(std::abs(row.values[schema.index_of(FeatureId::Ret1D)] - 0.1) < 1e-12);
+        assert(std::isfinite(row.values[schema.index_of(FeatureId::PriceZ)]));
+        assert(std::isfinite(row.values[schema.index_of(FeatureId::VolumeZ)]));
+        assert(std::isfinite(row.values[schema.index_of(FeatureId::CloseToSma)]));
 
         // Fourth bar: return rolling window ready, returns are constant => zero variance.
-        assert(state.push(make_event(4, id, 133.1)));
+        pushed = state.push(make_event(4, id, 133.1));
+        assert(pushed);
         assert(state.ready());
-        assert(std::abs(state.ret_1d() - 0.1) < 1e-12);
-        assert(std::abs(state.vol_pop()) < 1e-12);
+        row = state.to_feature_row(schema);
+        assert(std::abs(row.values[schema.index_of(FeatureId::Ret1D)] - 0.1) < 1e-12);
+        assert(std::abs(row.values[schema.index_of(FeatureId::RetVar)]) < 1e-12);
+        assert(std::abs(row.values[schema.index_of(FeatureId::RetVol)]) < 1e-12);
     }
 
     {

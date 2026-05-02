@@ -32,9 +32,14 @@ add_executable(engine
     risk/simple.cpp
     data/store/market_data_store.cpp
     simulation/simulator.cpp
-    strategy/rolling_moments.cpp
+    data/features/rolling_moments.cpp
     data/features/online_feature_state.cpp
     data/features/cross_section.cpp
+    data/features/feature_schema.hpp
+    data/features/feature_schema.cpp
+    data/features/feature_engine.cpp
+    data/features/feature_id.hpp
+    data/features/feature_id.cpp
 
 )
 
@@ -76,6 +81,12 @@ pybind11_add_module(engine_cpp
     risk/simple.cpp
     data/store/market_data_store.cpp
     core/engine_core.cpp
+    data/features/rolling_moments.cpp
+    data/features/online_feature_state.cpp
+    data/features/cross_section.cpp
+    data/features/feature_schema.cpp
+    data/features/feature_engine.cpp
+    data/features/feature_id.cpp
 
 )
 
@@ -118,12 +129,12 @@ add_test(NAME test_data_store COMMAND test_data_store)
 
 add_executable(test_rolling_moments
     tests/test_rolling_moments.cpp
-    strategy/rolling_moments.cpp
+    data/features/rolling_moments.cpp
 )
 
 target_include_directories(test_rolling_moments PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/strategy
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/features
 )
 
 add_test(NAME test_rolling_moments COMMAND test_rolling_moments)
@@ -131,7 +142,9 @@ add_test(NAME test_rolling_moments COMMAND test_rolling_moments)
 add_executable(test_online_feature_state
     tests/test_online_feature_state.cpp
     data/features/online_feature_state.cpp
-    strategy/rolling_moments.cpp
+    data/features/rolling_moments.cpp
+    data/features/feature_schema.cpp
+    data/features/feature_id.cpp
 )
 
 target_include_directories(test_online_feature_state PRIVATE
@@ -146,11 +159,35 @@ target_include_directories(test_online_feature_state PRIVATE
 
 add_test(NAME test_online_feature_state COMMAND test_online_feature_state)
 
+add_executable(test_feature_engine
+    tests/test_feature_engine.cpp
+    data/features/feature_engine.cpp
+    data/features/online_feature_state.cpp
+    data/features/rolling_moments.cpp
+    data/features/feature_schema.cpp
+    data/features/feature_id.cpp
+    data/features/cross_section.cpp
+)
+
+target_include_directories(test_feature_engine PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/features
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/extract
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/store
+    ${CMAKE_CURRENT_SOURCE_DIR}/strategy
+    ${CMAKE_CURRENT_SOURCE_DIR}/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/data
+)
+
+add_test(NAME test_feature_engine COMMAND test_feature_engine)
+
 add_executable(test_cross_section
     tests/test_cross_section.cpp
     data/features/cross_section.cpp
     data/features/online_feature_state.cpp
-    strategy/rolling_moments.cpp
+    data/features/rolling_moments.cpp
+    data/features/feature_schema.cpp
+    data/features/feature_id.cpp
 )
 
 target_include_directories(test_cross_section PRIVATE

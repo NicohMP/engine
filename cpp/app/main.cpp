@@ -32,13 +32,15 @@ int main() {
         ids.push_back(data.get_id(ticker));
     }
 
+    FeatureConfig feature_config{FeatureSchema(std::vector<std::string>{"ret_1d"}), 20};
+
     auto start = std::chrono::steady_clock::now();
     for (int i = 0; i < n_runs; ++i) {
         auto strat = std::make_shared<RandomStrategy>(
             ids, 200.0, std::nullopt, static_cast<unsigned int>(1000 + i)
         );
         Portfolio portfolio({}, 2000.0);
-        Backtester backtester(data, strat, portfolio);
+        Backtester backtester(data, strat, portfolio, feature_config);
         backtester.run();
     }
     auto end = std::chrono::steady_clock::now();

@@ -13,6 +13,9 @@
 #include "strategy/base.hpp"
 #include "strategy/random.hpp"
 #include "data/extract/parse_csv.hpp"
+#include "data/features/feature_config.hpp"
+#include "data/features/feature_id.hpp"
+#include "data/features/feature_schema.hpp"
 
 #include <utility>
 
@@ -32,14 +35,16 @@ public:
     }
     std::optional<std::vector<OrderEvent>> on_market_event(
         const MarketEvent& mevent,
-        const Portfolio& portfolio
+        const Portfolio& portfolio,
+        const FeatureView& view
     ) override {
         PYBIND11_OVERRIDE_PURE(
             std::optional<std::vector<OrderEvent>>,
             Strategy,
             on_market_event,
             mevent,
-            portfolio
+            portfolio,
+            view
         );
     }
 };
@@ -130,6 +135,7 @@ PYBIND11_MODULE(engine_cpp, m) {
         .def("get_or_add_id", &MarketDataStore::get_or_add_id, py::arg("ticker"))
         .def("get_symbol", &MarketDataStore::get_symbol, py::arg("symbol_id"))
         .def("get_id", &MarketDataStore::get_id, py::arg("ticker"))
+        .def("symbol_ids", &MarketDataStore::symbol_ids)
         .def(
             "bars",
             &MarketDataStore::bars,
@@ -144,6 +150,40 @@ PYBIND11_MODULE(engine_cpp, m) {
     py::class_<BuildResult>(m, "BuildResult", "Build output with store and stats.")
         .def_readwrite("store", &BuildResult::store)
         .def_readwrite("stats", &BuildResult::stats);
+
+    py::enum_<FeatureId>(m, "FeatureId", "Supported online feature id.")
+        .value("Ret1D", FeatureId::Ret1D)
+        .value("LogRet1D", FeatureId::LogRet1D)
+        .value("RetVar", FeatureId::RetVar)
+        .value("RetVol", FeatureId::RetVol)
+        .value("PriceZ", FeatureId::PriceZ)
+        .value("VolumeZ", FeatureId::VolumeZ)
+        .value("HighLowRange", FeatureId::HighLowRange)
+        .value("CloseToSma", FeatureId::CloseToSma)
+        .export_values();
+
+    py::class_<FeatureSchema>(m, "FeatureSchema", "Ordered online feature schema.")
+        .def(py::init<std::vector<FeatureId>>(), py::arg("features"))
+        .def(py::init<const std::vector<std::string>&>(), py::arg("names"))
+        .def("size", &FeatureSchema::size)
+        .def("empty", &FeatureSchema::empty)
+        .def("names", &FeatureSchema::names, py::return_value_policy::reference_internal)
+        .def("features", &FeatureSchema::features, py::return_value_policy::reference_internal)
+        .def("name", &FeatureSchema::name, py::arg("idx"), py::return_value_policy::reference_internal)
+        .def("feature", &FeatureSchema::feature, py::arg("idx"))
+        .def("contains", &FeatureSchema::contains, py::arg("id"))
+        .def("index_of", &FeatureSchema::index_of, py::arg("id"));
+
+    py::class_<FeatureConfig>(m, "FeatureConfig", "Online feature engine config.")
+        .def(
+            py::init([](FeatureSchema schema, std::size_t window) {
+                return FeatureConfig{std::move(schema), window};
+            }),
+            py::arg("schema"),
+            py::arg("window")
+        )
+        .def_readwrite("schema", &FeatureConfig::schema)
+        .def_readwrite("window", &FeatureConfig::window);
 
     py::class_<MarketEvent>(m, "MarketEvent", py::dynamic_attr(), "One OHLCV market bar.")
         .def(
@@ -282,7 +322,8 @@ PYBIND11_MODULE(engine_cpp, m) {
             "on_market_event",
             &Strategy::on_market_event,
             py::arg("mevent"),
-            py::arg("portfolio")
+            py::arg("portfolio"),
+            py::arg("features")
         );
 
     py::class_<RandomStrategy, Strategy, py::smart_holder>(m, "RandomStrategy", "Random target-notional strategy.")
@@ -297,7 +338,8 @@ PYBIND11_MODULE(engine_cpp, m) {
             "on_market_event",
             &RandomStrategy::on_market_event,
             py::arg("mevent"),
-            py::arg("portfolio")
+            py::arg("portfolio"),
+            py::arg("features")
         );
 
     py::class_<RiskManagerBase, PyRiskManager, py::smart_holder>(m, "RiskManagerBase", "Base class for Python or C++ risk managers.")
@@ -346,10 +388,11 @@ PYBIND11_MODULE(engine_cpp, m) {
 
     py::class_<Backtester>(m, "Backtester", "Event-driven backtester.")
         .def(
-            py::init<const MarketDataStore&, std::shared_ptr<Strategy>, Portfolio, double>(),
+            py::init<const MarketDataStore&, std::shared_ptr<Strategy>, Portfolio, FeatureConfig, double>(),
             py::arg("data"),
             py::arg("strategy"),
             py::arg("portfolio"),
+            py::arg("feature_config"),
             py::arg("fee_rate") = 0.0010,
             py::keep_alive<1, 2>()
         )
@@ -358,12 +401,14 @@ PYBIND11_MODULE(engine_cpp, m) {
                 const MarketDataStore&,
                 std::shared_ptr<Strategy>,
                 Portfolio,
+                FeatureConfig,
                 std::shared_ptr<RiskManagerBase>,
                 double
             >(),
             py::arg("data"),
             py::arg("strategy"),
             py::arg("portfolio"),
+            py::arg("feature_config"),
             py::arg("risk_manager"),
             py::arg("fee_rate") = 0.0010,
             py::keep_alive<1, 2>()

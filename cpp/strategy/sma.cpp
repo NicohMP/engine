@@ -9,7 +9,12 @@ SMAStrategy::SMAStrategy(size_t fw, size_t sw, double lt, double st, SymbolId si
     }
 }
 
-std::optional<std::vector<OrderEvent>> SMAStrategy::on_market_event(const MarketEvent& mevent, const Portfolio& Portfolio) {
+std::optional<std::vector<OrderEvent>> SMAStrategy::on_market_event(
+    const MarketEvent& mevent,
+    const Portfolio& Portfolio,
+    const FeatureView& features
+) {
+    (void)features;
     if (mevent.symbol_id != symbol_id){return std::nullopt;}
     const Position& pos = Portfolio.get_position(symbol_id);
     const double close = mevent.close;

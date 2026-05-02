@@ -43,7 +43,12 @@ RandomStrategy::RandomStrategy(
         target_not_ = target_notional;
     }
 
-std::optional<std::vector<OrderEvent>> RandomStrategy::on_market_event(const MarketEvent& mevent, const Portfolio& portfolio) {
+std::optional<std::vector<OrderEvent>> RandomStrategy::on_market_event(
+    const MarketEvent& mevent,
+    const Portfolio& portfolio,
+    const FeatureView& features
+) {
+    (void)features;
     if (std::find(universe_ids.begin(), universe_ids.end(), mevent.symbol_id) == universe_ids.end()){
         return std::nullopt;
     }

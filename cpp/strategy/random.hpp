@@ -22,7 +22,8 @@ class RandomStrategy : public Strategy {
         
         virtual std::optional<std::vector<OrderEvent>> on_market_event(
             const MarketEvent& mevent, 
-            const Portfolio& Portfolio) override;
+            const Portfolio& Portfolio,
+            const FeatureView& features) override;
 
         virtual void reset() override {};
 

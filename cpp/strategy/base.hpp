@@ -3,6 +3,7 @@
 #include "portfolio.hpp"
 #include "data/extract/tick.hpp"
 #include "core/event_types.hpp"
+#include "data/features/feature_types.hpp"
 #include <string>
 #include <optional>
 #include <vector>
@@ -14,7 +15,9 @@ class Strategy {
         virtual void reset() = 0;
         virtual std::optional<std::vector<OrderEvent>> on_market_event(
             const MarketEvent& mevent,
-            const Portfolio& portfolio) = 0 ;
+            const Portfolio& portfolio,
+            const FeatureView& features
+        ) = 0 ;
 };
 
 

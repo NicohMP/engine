@@ -50,7 +50,12 @@ BuyHoldStrategy::BuyHoldStrategy(
     }
 
 
-std::optional<std::vector<OrderEvent>> BuyHoldStrategy::on_market_event(const MarketEvent& mevent, const Portfolio& portfolio) {
+std::optional<std::vector<OrderEvent>> BuyHoldStrategy::on_market_event(
+    const MarketEvent& mevent,
+    const Portfolio& portfolio,
+    const FeatureView& features
+) {
+    (void)features;
     if (invested_){
         return std::nullopt;
     }

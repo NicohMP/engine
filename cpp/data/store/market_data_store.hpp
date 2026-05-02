@@ -51,6 +51,7 @@ class MarketDataStore {
         SymbolId get_or_add_id(const std::string& raw_ticker) ;
         std::string get_symbol(const SymbolId& id) const;
         SymbolId get_id(const std::string& raw_ticker) const;
+        std::vector<SymbolId> symbol_ids() const;
         const std::vector<MarketEvent>& bars() const { return events_; }
         const std::vector<TimeSlice>& slices() const { return slices_; }
 

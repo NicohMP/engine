@@ -101,6 +101,16 @@ SymbolId MarketDataStore::get_id(const std::string& ticker) const {
     return it->second;
 }
 
+std::vector<SymbolId> MarketDataStore::symbol_ids() const {
+    std::vector<SymbolId> ids;
+    ids.reserve(id_to_symbol_.size());
+    for (const auto& [id, symbol] : id_to_symbol_) {
+        ids.push_back(id);
+    }
+    std::sort(ids.begin(), ids.end());
+    return ids;
+}
+
 
 BuildResult MarketDataStore::from_ticks(std::vector<Tick> rows){
 

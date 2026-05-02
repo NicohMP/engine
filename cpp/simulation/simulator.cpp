@@ -3,12 +3,14 @@
 #include <stdexcept>
 
 Simulator::Simulator(
+    std::vector<SymbolId> universe,
     std::shared_ptr<Strategy> strategy,
     Portfolio init_portfolio,
+    FeatureConfig feature_config,
     std::shared_ptr<RiskManagerBase> risk_manager,
     double fee_rate
     ): 
-    engine_(strategy,init_portfolio,risk_manager,fee_rate)
+    engine_(std::move(universe), std::move(strategy), std::move(init_portfolio), std::move(feature_config), std::move(risk_manager), fee_rate)
     {
     if (fee_rate < 0.0) {
         throw std::runtime_error("fee_rate must be non-negative");
@@ -19,12 +21,16 @@ Simulator::Simulator(
 }
 
 Simulator::Simulator(
+    std::vector<SymbolId> universe,
     std::shared_ptr<Strategy> strategy,
     Portfolio init_portfolio,
+    FeatureConfig feature_config,
     double fee_rate
 ) : Simulator(
+        std::move(universe),
         std::move(strategy),
         std::move(init_portfolio),
+        std::move(feature_config),
         nullptr, // now that we use a shared_ptr, the None equivalent is nullptr
         fee_rate
     ) {}

@@ -1,35 +1,43 @@
 #include "core/engine_core.hpp"
-
 #include <stdexcept>
 
 EngineCore::EngineCore(
+    std::vector<SymbolId> universe,
     std::shared_ptr<Strategy> strategy,
     Portfolio init_portfolio,
+    FeatureConfig feature_config,
     std::shared_ptr<RiskManagerBase> risk_manager,
     double fee_rate
     ): 
+    universe_(std::move(universe)),
     initial_portfolio(std::move(init_portfolio)),
     portfolio(initial_portfolio),
     risk_manager_(std::move(risk_manager)),
     strategy_(std::move(strategy)),
+    feature_config_(std::move(feature_config)),
+    feat_engine_(universe_, feature_config_.schema, feature_config_.window),
     execution_engine_(fee_rate),
     fee_rate_(fee_rate) 
     {
     if (fee_rate_ < 0.0) {
         throw std::runtime_error("fee_rate must be non-negative");
     }
-    // if (data_.empty()){ // check market events isn't empty
-    //     throw std::runtime_error("no data ");
-    // }    
+    if (universe_.empty()) {
+        throw std::runtime_error("universe must not be empty");
+    }
 }
 
 EngineCore::EngineCore(
+    std::vector<SymbolId> universe,
     std::shared_ptr<Strategy> strategy,
     Portfolio init_portfolio,
+    FeatureConfig feature_config,
     double fee_rate
 ) : EngineCore(
+        std::move(universe),
         std::move(strategy),
         std::move(init_portfolio),
+        std::move(feature_config),
         nullptr, // now that we use a shared_ptr, the None equivalent is nullptr
         fee_rate
     ) {}
@@ -54,6 +62,7 @@ void EngineCore::reset_all(){
     if (risk_manager_){
         risk_manager_->reset();
     }
+    feat_engine_.reset();
 }
 
 
@@ -67,8 +76,20 @@ void EngineCore::step(const MarketEvent& mevent){
         if (std::holds_alternative<MarketEvent>(event)) { 
             const MarketEvent& market_event = std::get<MarketEvent>(event);
             portfolio.update_prices(market_event); // update portfolio info with new market info
+            
+            // Update feature engine, retrieve latest feature rows and cross-asset features
+            feat_engine_.push(market_event);
+            auto row = feat_engine_.latest_row(market_event.symbol_id);
+            auto xs = feat_engine_.compute_cross_section(market_event.timestamp);
 
-            auto maybe_orders = strategy_->on_market_event(market_event, portfolio); // apply strategy to possibly place new orders
+            FeatureView view{
+                market_event.timestamp,
+                &feature_config_.schema,
+                row ? &(*row) : nullptr,
+                xs ? &(*xs) : nullptr
+            };
+
+            auto maybe_orders = strategy_->on_market_event(market_event, portfolio,view); // apply strategy to possibly place new orders
             
             if (maybe_orders) {
                 std::optional<std::vector<OrderEvent>> accepted_orders = maybe_orders;

@@ -26,14 +26,18 @@ class Simulator {
     
     public:
         Simulator(
+            std::vector<SymbolId> universe,
             std::shared_ptr<Strategy> strategy,
             Portfolio portfolio,
+            FeatureConfig feature_config,
             std::shared_ptr<RiskManagerBase> risk_manager = nullptr,
             double fee_rate = kFeeRateStandard
         );
         Simulator(
+            std::vector<SymbolId> universe,
             std::shared_ptr<Strategy> strategy,
             Portfolio portfolio,
+            FeatureConfig feature_config,
             double fee_rate
         );
         StepResult step_bar(const MarketEvent& mevent);

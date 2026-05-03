@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 struct CrossSectionResult {
@@ -36,6 +37,7 @@ public:
     // Returns false only if any row has non-finite feature values.
     // Throws on schema mismatch / duplicate symbol / timestamp mismatch.
     bool push_snapshot(int64_t ts, const std::vector<FeatureRow>& rows);
+    bool push_snapshot(int64_t ts, const std::vector<const FeatureRow*>& rows);
 
     bool ready() const;
     int64_t timestamp() const;
@@ -45,5 +47,10 @@ public:
     const std::vector<std::string>& feature_names() const;
 
     CrossSectionResult compute(double eps = 1e-12) const;
+    void compute_into(
+        CrossSectionResult& res,
+        std::vector<std::pair<double, std::size_t>>& valid,
+        double eps = 1e-12
+    ) const;
     void reset();
 };

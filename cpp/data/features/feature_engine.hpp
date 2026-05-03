@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <optional>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 class FeatureEngine {
@@ -30,7 +31,8 @@ public:
     const FeatureRow* latest_row(SymbolId id) const;
     std::vector<FeatureRow> latest_rows() const;
 
-    std::optional<CrossSectionResult> compute_cross_section(int64_t timestamp) const;
+    const CrossSectionResult* compute_cross_section_view(int64_t timestamp);
+    std::optional<CrossSectionResult> compute_cross_section(int64_t timestamp);
 
     void reset();
 
@@ -39,4 +41,8 @@ private:
     std::vector<SymbolId> universe_; //
     std::unordered_map<SymbolId, OnlineFeatureState> states_;
     std::unordered_map<SymbolId, FeatureRow> latest_rows_;
+    std::optional<CrossSectionSnapshot> cross_section_;
+    CrossSectionResult latest_cross_section_;
+    std::vector<const FeatureRow*> latest_row_ptrs_;
+    std::vector<std::pair<double, std::size_t>> cross_section_valid_;
 };

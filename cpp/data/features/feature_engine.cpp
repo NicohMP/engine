@@ -6,15 +6,20 @@ FeatureEngine::FeatureEngine(std::vector<SymbolId> universe,FeatureSchema schema
     schema_(schema){
         // Dedupe universe
         std::unordered_set<SymbolId> seen;
+        universe_.reserve(universe.size());
         for (const SymbolId& id: universe){
             if (seen.insert(id).second){
                 universe_.push_back(id);
             }
         }
+        states_.reserve(universe_.size());
+        latest_rows_.reserve(universe_.size());
+        latest_row_ptrs_.reserve(universe_.size());
         // Build feature states from clean universe
         for (const SymbolId& id:universe_){
             states_.emplace(id,OnlineFeatureState(id,window));
         }
+        cross_section_.emplace(universe_, schema_.names());
 }
 
 bool FeatureEngine::push(const MarketEvent& event){
@@ -79,20 +84,38 @@ std::vector<FeatureRow> FeatureEngine::latest_rows() const{
     return rows;
 }
 
-std::optional<CrossSectionResult> FeatureEngine::compute_cross_section(int64_t timestamp) const{
+const CrossSectionResult* FeatureEngine::compute_cross_section_view(int64_t timestamp){
     // Check that all states are ready
     if (!ready_all()) {
-        return std::nullopt;
+        return nullptr;
     }
-    // Build snapshot class and try to push
-    CrossSectionSnapshot css(universe_,schema_.names());
-    bool ok = css.push_snapshot(timestamp, latest_rows());
+
+    latest_row_ptrs_.clear();
+    for (SymbolId id : universe_) {
+        const FeatureRow* row = latest_row(id);
+        if (row == nullptr) {
+            return nullptr;
+        }
+        latest_row_ptrs_.push_back(row);
+    }
+
+    cross_section_->reset();
+    bool ok = cross_section_->push_snapshot(timestamp, latest_row_ptrs_);
     // If push fails, return None
     if (!ok) {
-        return std::nullopt;
+        return nullptr;
     }
     // If push succeed, compute result
-    return css.compute();
+    cross_section_->compute_into(latest_cross_section_, cross_section_valid_);
+    return &latest_cross_section_;
+}
+
+std::optional<CrossSectionResult> FeatureEngine::compute_cross_section(int64_t timestamp){
+    const CrossSectionResult* result = compute_cross_section_view(timestamp);
+    if (result == nullptr) {
+        return std::nullopt;
+    }
+    return *result;
 }
 
 void FeatureEngine::reset(){

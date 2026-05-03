@@ -69,6 +69,42 @@ bool CrossSectionSnapshot::push_snapshot(int64_t ts, const std::vector<FeatureRo
     return all_valid;
 }
 
+bool CrossSectionSnapshot::push_snapshot(int64_t ts, const std::vector<const FeatureRow*>& rows){
+    // Check no timstamps mix up, assing new ts if timestamp_ is None. 
+    if (timestamp_.has_value()){
+        if (*timestamp_ != ts) {
+            throw std::runtime_error("Combining different timestamps in the same snapshot");
+        }
+    } else {timestamp_ = ts;}
+
+    // Refill values_ w/ NaNs, no shape changes.
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    for (auto& row : values_) {std::fill(row.begin(), row.end(), nan);}
+    
+    // Fill with values from rows without copying FeatureRow containers.
+    bool all_valid = rows.size() == universe_.size();
+    for (const FeatureRow* row: rows){
+        if (row == nullptr) {
+            all_valid = false;
+            continue;
+        }
+        auto it = id_to_row_.find(row->symbol_id);
+        if (it == id_to_row_.end()) { 
+            throw std::runtime_error("Unsupported asset with id" + std::to_string(row->symbol_id));
+        }
+        if (row->values.size() != feature_names_.size()){
+            throw std::runtime_error("Missing values in feature row for id" + std::to_string(row->symbol_id));
+        }
+        for (const double& v: row->values){
+            if (!std::isfinite(v)) {all_valid = false;}
+        }
+        std::vector<double>& target = values_[it->second];
+        std::copy(row->values.begin(), row->values.end(), target.begin());
+    }
+    timestamp_ = ts;
+    return all_valid;
+}
+
 void CrossSectionSnapshot::reset(){
     // Refill values_ w/ NaNs, no shape changes.
     const double nan = std::numeric_limits<double>::quiet_NaN();
@@ -94,29 +130,40 @@ const std::vector<SymbolId>& CrossSectionSnapshot::symbols() const{return univer
 const std::vector<std::string>& CrossSectionSnapshot::feature_names() const{return feature_names_;}
 
 CrossSectionResult CrossSectionSnapshot::compute(double eps) const{
+    CrossSectionResult res;
+    std::vector<std::pair<double, std::size_t>> valid;
+    compute_into(res, valid, eps);
+    return res;
+}
+
+void CrossSectionSnapshot::compute_into(
+    CrossSectionResult& res,
+    std::vector<std::pair<double, std::size_t>>& valid,
+    double eps
+) const{
     if (!ready()) {
         throw std::runtime_error("Cannot compute cross-section: snapshot not ready");
     }
 
-    CrossSectionResult res;
     res.timestamp = *timestamp_;
-    res.symbols = universe_;
-    res.raw = values_;
 
     const std::size_t n_symbols = universe_.size();
     const std::size_t n_features = feature_names_.size();
-    res.zscore.assign(
-        n_symbols,
-        std::vector<std::optional<double>>(n_features, std::nullopt)
-    );
-    res.rank_pct.assign(
-        n_symbols,
-        std::vector<std::optional<double>>(n_features, std::nullopt)
-    );
+
+    res.symbols = universe_;
+    res.raw.resize(n_symbols);
+    res.zscore.resize(n_symbols);
+    res.rank_pct.resize(n_symbols);
+    for (std::size_t i = 0; i < n_symbols; ++i) {
+        res.raw[i].resize(n_features);
+        std::copy(values_[i].begin(), values_[i].end(), res.raw[i].begin());
+        res.zscore[i].assign(n_features, std::nullopt);
+        res.rank_pct[i].assign(n_features, std::nullopt);
+    }
 
     // Compute cross-sectional statistics per feature (column-wise across symbols).
     for (std::size_t j = 0; j < n_features; ++j) {
-        std::vector<std::pair<double, std::size_t>> valid; // (value, row index)
+        valid.clear(); // (value, row index)
         valid.reserve(n_symbols);
 
         for (std::size_t i = 0; i < n_symbols; ++i) {
@@ -181,6 +228,4 @@ CrossSectionResult CrossSectionSnapshot::compute(double eps) const{
             s = e;
         }
     }
-
-    return res;
 }

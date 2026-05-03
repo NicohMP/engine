@@ -51,8 +51,8 @@ int main() {
     assert(engine.ready(id2));
     assert(engine.ready_all());
 
-    std::optional<FeatureRow> maybe_row = engine.latest_row(id1);
-    assert(maybe_row.has_value());
+    const FeatureRow* maybe_row = engine.latest_row(id1);
+    assert(maybe_row != nullptr);
     const FeatureRow& row = *maybe_row;
     assert(row.symbol_id == id1);
     assert(row.values.size() == schema.size());
@@ -77,7 +77,7 @@ int main() {
 
     engine.reset();
     assert(!engine.ready_all());
-    assert(!engine.latest_row(id1).has_value());
+    assert(engine.latest_row(id1) == nullptr);
 
     return 0;
 }

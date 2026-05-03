@@ -3,6 +3,7 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 // Define Nan type
 namespace {
@@ -134,6 +135,6 @@ FeatureRow OnlineFeatureState::to_feature_row(const FeatureSchema& schema) const
     for (const FeatureId& feat:schema.features()){
         values.push_back(compute_feature(feat));
     }
-    FeatureRow feat_row{id_, values};
+    FeatureRow feat_row{id_, std::move(values)};
     return feat_row;
 }

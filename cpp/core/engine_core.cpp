@@ -79,13 +79,16 @@ void EngineCore::step(const MarketEvent& mevent){
             
             // Update feature engine, retrieve latest feature rows and cross-asset features
             feat_engine_.push(market_event);
-            auto row = feat_engine_.latest_row(market_event.symbol_id);
-            auto xs = feat_engine_.compute_cross_section(market_event.timestamp);
+            const FeatureRow* row = feat_engine_.latest_row(market_event.symbol_id);
+            std::optional<CrossSectionResult> xs = std::nullopt;
+            if (feature_config_.enable_cross_section) {
+                xs = feat_engine_.compute_cross_section(market_event.timestamp);
+            }
 
             FeatureView view{
                 market_event.timestamp,
                 &feature_config_.schema,
-                row ? &(*row) : nullptr,
+                row,
                 xs ? &(*xs) : nullptr
             };
 

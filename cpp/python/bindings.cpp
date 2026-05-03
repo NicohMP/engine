@@ -176,14 +176,16 @@ PYBIND11_MODULE(engine_cpp, m) {
 
     py::class_<FeatureConfig>(m, "FeatureConfig", "Online feature engine config.")
         .def(
-            py::init([](FeatureSchema schema, std::size_t window) {
-                return FeatureConfig{std::move(schema), window};
+            py::init([](FeatureSchema schema, std::size_t window, bool enable_cross_section) {
+                return FeatureConfig{std::move(schema), window, enable_cross_section};
             }),
             py::arg("schema"),
-            py::arg("window")
+            py::arg("window"),
+            py::arg("enable_cross_section") = false
         )
         .def_readwrite("schema", &FeatureConfig::schema)
-        .def_readwrite("window", &FeatureConfig::window);
+        .def_readwrite("window", &FeatureConfig::window)
+        .def_readwrite("enable_cross_section", &FeatureConfig::enable_cross_section);
 
     py::class_<MarketEvent>(m, "MarketEvent", py::dynamic_attr(), "One OHLCV market bar.")
         .def(

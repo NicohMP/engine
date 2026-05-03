@@ -80,6 +80,40 @@ class BuildResult:
     store: MarketDataStore
     stats: BuildStats
 
+class FeatureId(Enum):
+    Ret1D: FeatureId
+    LogRet1D: FeatureId
+    RetVar: FeatureId
+    RetVol: FeatureId
+    PriceZ: FeatureId
+    VolumeZ: FeatureId
+    HighLowRange: FeatureId
+    CloseToSma: FeatureId
+
+class FeatureSchema:
+    """Authority controlling the features being computed at each step and fed to strategies"""
+
+    def __init__(self, features: Sequence[FeatureId] | Sequence[str]) -> None: ...
+    def size(self) -> int: ...
+    def empty(self) -> bool: ...
+    def names(self) -> list[str]: ...
+    def features(self) -> list[FeatureId]: ...
+    def name(self, idx: int) -> str: ...
+    def feature(self, idx: int) -> FeatureId: ...
+    def contains(self, id: FeatureId) -> bool: ...
+    def index_of(self, id: FeatureId) -> int: ...
+
+class FeatureConfig:
+    schema: FeatureSchema
+    window: int
+    enable_cross_section: bool
+    def __init__(
+        self,
+        schema: FeatureSchema,
+        window: int,
+        enable_cross_section: bool = False,
+    ) -> None: ...
+
 class OrderEvent:
     id: int
     symbol_id: SymbolId

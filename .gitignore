@@ -29,6 +29,7 @@ __pycache__/
 # C++ / CMake build artifacts
 build/
 build-release/
+build-fast/
 cmake-build-*/
 CMakeFiles/
 CMakeCache.txt

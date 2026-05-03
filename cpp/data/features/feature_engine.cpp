@@ -58,12 +58,10 @@ const std::vector<SymbolId>& FeatureEngine::universe() const{
     return universe_;
 }
 
-std::optional<FeatureRow> FeatureEngine::latest_row(SymbolId id) const{
+const FeatureRow* FeatureEngine::latest_row(SymbolId id) const{
     auto it = latest_rows_.find(id);
-    if (it == latest_rows_.end()) {
-        return std::nullopt;
-    }
-    return it->second;
+    if (it == latest_rows_.end()) return nullptr;
+    return &it->second;
 }
 
 std::vector<FeatureRow> FeatureEngine::latest_rows() const{

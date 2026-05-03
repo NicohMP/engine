@@ -27,7 +27,7 @@ public:
     const FeatureSchema& schema() const;
     const std::vector<SymbolId>& universe() const;
 
-    std::optional<FeatureRow> latest_row(SymbolId id) const;
+    const FeatureRow* latest_row(SymbolId id) const;
     std::vector<FeatureRow> latest_rows() const;
 
     std::optional<CrossSectionResult> compute_cross_section(int64_t timestamp) const;

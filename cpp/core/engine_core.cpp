@@ -66,6 +66,58 @@ void EngineCore::reset_all(){
 }
 
 
+void EngineCore::process_market_decision(const MarketEvent& market_event, const FeatureView& view){
+    auto maybe_orders = strategy_->on_market_event(market_event, portfolio,view); // apply strategy to possibly place new orders
+    
+    if (maybe_orders) {
+        std::optional<std::vector<OrderEvent>> accepted_orders = maybe_orders;
+        if (risk_manager_){
+            accepted_orders = risk_manager_->accept_order_batch(*maybe_orders, portfolio);
+        }
+        if (accepted_orders){
+            for (OrderEvent order : *accepted_orders) {
+                if (order.id == 0) {
+                    order.id = generate_order_id();
+                }
+                if (!order.quantity || *order.quantity <= 0.0) {
+                    throw std::runtime_error("Invalid order quantity");
+                }
+                event_queue_.push_back(Event{order}); // if an order is passed, add to the queue
+            }
+        }
+    }
+
+    // Let queued orders get a chance to fill even when strategy emits no new order.
+    const std::vector<FillEvent> fills = execution_engine_.fill_orders(market_event);
+    for (const FillEvent& fill : fills) {
+        event_queue_.push_back(Event{fill});
+    }
+}
+
+void EngineCore::drain_event_queue(const MarketEvent& market_event){
+    while (!event_queue_.empty()) {
+        Event event = std::move(event_queue_.front());
+        event_queue_.pop_front();
+
+        if (std::holds_alternative<OrderEvent>(event)) {
+            const OrderEvent& order = std::get<OrderEvent>(event);
+            orders_.push_back(order);
+            execution_engine_.pass_order(order);
+
+            const std::vector<FillEvent> fills = execution_engine_.fill_orders(market_event);
+            for (const FillEvent& fill : fills) {
+                event_queue_.push_back(Event{fill});
+            }
+        } else if (std::holds_alternative<FillEvent>(event)) {
+            const FillEvent& fill = std::get<FillEvent>(event);
+            fills_.push_back(fill);
+            portfolio.update_position(fill);
+        } else if (std::holds_alternative<MarketEvent>(event)) {
+            throw std::runtime_error("Unexpected MarketEvent while draining event queue");
+        }
+    }
+}
+
 void EngineCore::step(const MarketEvent& mevent){
     event_queue_.push_back(Event{mevent});
     while (!event_queue_.empty()) { // while there still are events left (new orders and fill might be created in the loop and will be handled in the next iterations)
@@ -80,43 +132,19 @@ void EngineCore::step(const MarketEvent& mevent){
             // Update feature engine, retrieve latest feature rows and cross-asset features
             feat_engine_.push(market_event);
             const FeatureRow* row = feat_engine_.latest_row(market_event.symbol_id);
-            std::optional<CrossSectionResult> xs = std::nullopt;
+            const CrossSectionResult* xs = nullptr;
             if (feature_config_.enable_cross_section) {
-                xs = feat_engine_.compute_cross_section(market_event.timestamp);
+                xs = feat_engine_.compute_cross_section_view(market_event.timestamp);
             }
 
             FeatureView view{
                 market_event.timestamp,
                 &feature_config_.schema,
                 row,
-                xs ? &(*xs) : nullptr
+                xs
             };
 
-            auto maybe_orders = strategy_->on_market_event(market_event, portfolio,view); // apply strategy to possibly place new orders
-            
-            if (maybe_orders) {
-                std::optional<std::vector<OrderEvent>> accepted_orders = maybe_orders;
-                if (risk_manager_){
-                    accepted_orders = risk_manager_->accept_order_batch(*maybe_orders, portfolio);
-                }
-                if (accepted_orders){
-                    for (OrderEvent order : *accepted_orders) {
-                        if (order.id == 0) {
-                            order.id = generate_order_id();
-                        }
-                        if (!order.quantity || *order.quantity <= 0.0) {
-                            throw std::runtime_error("Invalid order quantity");
-                        }
-                        event_queue_.push_back(Event{order}); // if an order is passed, add to the queue
-                    }
-                }
-            }
-
-            // Let queued orders get a chance to fill even when strategy emits no new order.
-            const std::vector<FillEvent> fills = execution_engine_.fill_orders(market_event);
-            for (const FillEvent& fill : fills) {
-                event_queue_.push_back(Event{fill});
-            }
+            process_market_decision(market_event, view);
         } else if (std::holds_alternative<OrderEvent>(event)) {  // For an OrderEvent, pass it to the execution engine
             const OrderEvent& order = std::get<OrderEvent>(event);
             orders_.push_back(order);
@@ -134,4 +162,47 @@ void EngineCore::step(const MarketEvent& mevent){
     }
 
     equity_.push_back({mevent.timestamp, portfolio.total_equity()});
+}
+
+void EngineCore::step_slice(const MarketEvent* begin, const MarketEvent* end){
+    if (begin == end) {
+        return;
+    }
+    if (!feature_config_.enable_cross_section) {
+        for (const MarketEvent* it = begin; it != end; ++it) {
+            step(*it);
+        }
+        return;
+    }
+
+    const int64_t timestamp = begin->timestamp;
+    for (const MarketEvent* it = begin; it != end; ++it) {
+        if (it->timestamp != timestamp) {
+            throw std::runtime_error("EngineCore::step_slice requires one timestamp");
+        }
+        portfolio.update_prices(*it);
+        feat_engine_.push(*it);
+    }
+
+    const CrossSectionResult* xs = feat_engine_.compute_cross_section_view(timestamp);
+    for (const MarketEvent* it = begin; it != end; ++it) {
+        const MarketEvent& market_event = *it;
+        const FeatureRow* row = feat_engine_.latest_row(market_event.symbol_id);
+        FeatureView view{
+            market_event.timestamp,
+            &feature_config_.schema,
+            row,
+            xs
+        };
+        process_market_decision(market_event, view);
+        drain_event_queue(market_event);
+        equity_.push_back({market_event.timestamp, portfolio.total_equity()});
+    }
+}
+
+void EngineCore::step_slice(const std::vector<MarketEvent>& events){
+    if (events.empty()) {
+        return;
+    }
+    step_slice(events.data(), events.data() + events.size());
 }

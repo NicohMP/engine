@@ -27,10 +27,8 @@ Backtester::Backtester(
 
 void Backtester::run() {
     engine.reset_all();
+    const std::vector<MarketEvent>& bars = data_.bars();
     for (const TimeSlice& slice : data_.slices()) {
-        for (size_t i= slice.begin_idx; i<slice.end_idx; i++){
-            const MarketEvent& mevent = data_.bars()[i];
-            engine.step(mevent);
-        }
+        engine.step_slice(&bars[slice.begin_idx], &bars[slice.end_idx]);
     }
 }

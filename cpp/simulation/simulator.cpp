@@ -97,9 +97,7 @@ StepResult Simulator::step_timestamp(const std::vector<MarketEvent>& slice){
     const size_t old_fills_nb = engine_.get_fills().size();
     
     // Step engine through timestamp
-    for (const MarketEvent& mevent:sorted_slice){
-        engine_.step(mevent);
-    }
+    engine_.step_slice(sorted_slice);
     // Update orders/fills
     const std::vector<OrderEvent>& tot_orders = engine_.get_orders();
     const std::vector<FillEvent>& tot_fills = engine_.get_fills();

@@ -32,7 +32,7 @@ int main() {
         ids.push_back(data.get_id(ticker));
     }
 
-    FeatureConfig feature_config{FeatureSchema(std::vector<std::string>{"ret_1d"}), 20};
+    FeatureConfig feature_config{FeatureSchema(std::vector<std::string>{"ret_1d"}), 20, true};
 
     auto start = std::chrono::steady_clock::now();
     for (int i = 0; i < n_runs; ++i) {

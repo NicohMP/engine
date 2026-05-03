@@ -201,3 +201,34 @@ target_include_directories(test_cross_section PRIVATE
 )
 
 add_test(NAME test_cross_section COMMAND test_cross_section)
+
+add_executable(test_engine_core_slice
+    tests/test_engine_core_slice.cpp
+    core/event_types.cpp
+    core/engine_core.cpp
+    execution/execution_engine.cpp
+    portfolio/portfolio.cpp
+    portfolio/position.cpp
+    strategy/base.cpp
+    risk/simple.cpp
+    data/features/feature_engine.cpp
+    data/features/online_feature_state.cpp
+    data/features/rolling_moments.cpp
+    data/features/cross_section.cpp
+    data/features/feature_schema.cpp
+    data/features/feature_id.cpp
+)
+
+target_include_directories(test_engine_core_slice PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/execution
+    ${CMAKE_CURRENT_SOURCE_DIR}/portfolio
+    ${CMAKE_CURRENT_SOURCE_DIR}/strategy
+    ${CMAKE_CURRENT_SOURCE_DIR}/risk
+    ${CMAKE_CURRENT_SOURCE_DIR}/data
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/extract
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/features
+)
+
+add_test(NAME test_engine_core_slice COMMAND test_engine_core_slice)

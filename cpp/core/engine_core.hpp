@@ -34,6 +34,9 @@ class EngineCore {
         std::vector<FillEvent> fills_;
         std::vector<std::pair<int64_t, double>> equity_;
         double fee_rate_;
+
+        void process_market_decision(const MarketEvent& market_event, const FeatureView& view);
+        void drain_event_queue(const MarketEvent& market_event);
     public:
         EngineCore(
             std::vector<SymbolId> universe,
@@ -51,6 +54,8 @@ class EngineCore {
             double fee_rate
         );
         void step(const MarketEvent& mevent);
+        void step_slice(const MarketEvent* begin, const MarketEvent* end);
+        void step_slice(const std::vector<MarketEvent>& events);
         void reset_runtime_logs();
         void reset_step_state();
         void reset_all();

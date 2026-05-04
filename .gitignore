@@ -36,5 +36,5 @@ CMakeCache.txt
 cmake_install.cmake
 Makefile
 
-# Implemetation schedules
-mvp-week*.md
+# Backend env
+backend/.env

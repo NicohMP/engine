@@ -1,0 +1,11 @@
+services: # available services in the image
+  api:  # define a service called api
+    build:  # build the docker image defined in backend/ (with app/ and Dockerfile)
+      context: ./backend
+    ports:  # Map the machine's port 8000 to the docker port 8000
+      - "8000:8000" 
+    env_file: # Direct to .env file for environment variables
+      - ./backend/.env
+
+    volumes: # Mount local code into the container. Useful duirng devt to view code changes w/o rebuilding the whole image
+      - ./backend/app:/app/app

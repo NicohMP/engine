@@ -15,7 +15,9 @@ COPY cpp ./cpp
 COPY ml ./ml
 COPY backend ./backend
 
-RUN cmake -S cpp -B build -G Ninja -DPython_EXECUTABLE="$(which python)"
+RUN cmake -S cpp -B build -G Ninja \
+    -DPython_EXECUTABLE="$(which python)" \
+    -Dpybind11_DIR="$(python -m pybind11 --cmakedir)"
 RUN cmake --build build -j
 
 ENV PYTHONPATH=/app:/app/build

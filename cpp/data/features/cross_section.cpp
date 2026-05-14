@@ -3,6 +3,7 @@
 #include <limits>
 #include <cmath>
 #include <algorithm>
+#include <stdexcept>
 
 CrossSectionSnapshot::CrossSectionSnapshot(
     std::vector<SymbolId> universe_ids,std::vector<std::string> feature_names)

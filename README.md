@@ -50,3 +50,24 @@ Use the Python extension:
 ```bash
 PYTHONPATH=build .venv/bin/python -c "import engine_cpp; print(engine_cpp.__version__)"
 ```
+
+## Docker UI
+
+For the simplest browser demo, install Docker Desktop, then run this from the
+repository root:
+
+```bash
+docker compose up --build
+```
+
+Then open:
+
+- Web UI: `http://localhost:5173`
+- API docs: `http://localhost:8000/docs`
+- API health: `http://localhost:8000/health`
+
+Stop everything with:
+
+```bash
+docker compose down
+```

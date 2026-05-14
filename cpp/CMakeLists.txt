@@ -40,7 +40,6 @@ add_executable(engine
     data/features/feature_engine.cpp
     data/features/feature_id.hpp
     data/features/feature_id.cpp
-
 )
 
 # Tell the `engine` executable where to look for project header files.
@@ -70,6 +69,15 @@ find_package(pybind11 CONFIG REQUIRED)
 # Python will import this with: `import engine_cpp`.
 pybind11_add_module(engine_cpp
     python/bindings.cpp
+    python/bindings.hpp
+    python/bind_core.cpp
+    python/bind_data.cpp
+    python/bind_features.cpp
+    python/bind_portfolio.cpp
+    python/bind_execution.cpp
+    python/bind_strategy.cpp
+    python/bind_risk.cpp
+    python/bind_backtest.cpp
     data/extract/parse_csv.cpp
     portfolio/portfolio.cpp
     portfolio/position.cpp

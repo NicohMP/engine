@@ -139,6 +139,14 @@ def run_buy_hold_backtest(
         "equity_curve": [
             {"timestamp": int(ts), "equity": float(value)} for ts, value in equity
         ],
+        "price_curve": [
+            {
+                "timestamp": int(row.timestamp),
+                "ticker": str(row.ticker),
+                "close": float(row.close),
+            }
+            for row in df.itertuples(index=False)
+        ],
     }
 
 

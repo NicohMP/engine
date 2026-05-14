@@ -1,5 +1,28 @@
 
 // Contains the parameters passed into a request for run_random_request
+export type StrategyId = "random" | "buy_hold";
+
+export type StrategyOption = {
+  id: StrategyId;
+  label: string;
+};
+
+export type BacktestFormValues = {
+  selectedTickers: string[];
+  start: string;
+  end: string;
+  initialCash: number;
+  targetNotional: number;
+  seed: number;
+};
+
+export type SupportedTicker = {
+  symbol: string;
+  name: string;
+  market: string;
+  sector?: string;
+};
+
 export type RandomBacktestRequest = {
   tickers: string[];
   start: string;
@@ -16,6 +39,11 @@ export type BuyHoldBacktestRequest = {
   initial_cash: number;
 };
 
+export type PricePoint = {
+  timestamp: number;
+  ticker: string;
+  close: number;
+};
 
 // TypeScript type describing the "summary" object returned by POST /backtests/random.
 export type BacktestSummary = {
@@ -49,4 +77,10 @@ export type BacktestResult = {
   timing: BacktestTiming;
   symbols: string[];
   equity_curve: EquityPoint[];
+  price_curve: PricePoint[];
+};
+
+export type BacktestRun = {
+  strategy: StrategyOption;
+  result: BacktestResult;
 };

@@ -12,7 +12,7 @@ Makefile
 .DS_Store
 EOF
 .vscode/
-.env/
+.venv/
 ml/data/
 ml/notebooks/
 
@@ -37,4 +37,4 @@ cmake_install.cmake
 Makefile
 
 # Backend env
-backend/.env
+.env

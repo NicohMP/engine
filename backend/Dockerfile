@@ -11,7 +11,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the backend code in the docker image
-COPY app ./app
+COPY backend/app ./app
 
 # Default command run when the container starts. Here, it runs the FastAPI server.
 CMD ["fastapi", "run", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]

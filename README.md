@@ -34,7 +34,7 @@ The goal is to keep the hot path in C++ while exposing enough Python bindings fo
 From the repository root:
 
 ```bash
-cmake -S cpp -B build -DPython_EXECUTABLE="$PWD/.env/bin/python"
+cmake -S cpp -B build -DPython_EXECUTABLE="$PWD/.venv/bin/python"
 cmake --build build -j
 ctest --test-dir build --output-on-failure
 ```
@@ -48,5 +48,5 @@ Run the C++ benchmark app:
 Use the Python extension:
 
 ```bash
-PYTHONPATH=build .env/bin/python -c "import engine_cpp; print(engine_cpp.__version__)"
+PYTHONPATH=build .venv/bin/python -c "import engine_cpp; print(engine_cpp.__version__)"
 ```

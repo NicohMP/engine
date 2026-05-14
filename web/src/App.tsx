@@ -1,13 +1,13 @@
 import "./App.css";
 import { useState } from "react";
-import ApiHealthCard from "./components/ApiHealthCard";
-import BuyHoldBacktestPanel from "./components/BuyHoldBacktestPanel";
-import RandomBacktestPanel from "./components/RandomBacktestPanel";
+import ApiHealthCard from "./components/layout/ApiHealthCard";
+import CompareBacktestsPage from "./pages/CompareBacktestsPage";
+import SingleBacktestPage from "./pages/SingleBacktestPage";
 
-type Page = "random" | "buy-hold";
+type Page = "single" | "compare";
 
 function App() {
-  const [page, setPage] = useState<Page>("random");
+  const [page, setPage] = useState<Page>("single");
 
   return (
     <main className="app">
@@ -20,26 +20,24 @@ function App() {
 
       <ApiHealthCard />
 
-      <nav className="page-tabs" aria-label="Backtest strategy pages">
+      <nav className="page-tabs" aria-label="Backtest workflow pages">
         <button
-          className={page === "random" ? "page-tab page-tab-active" : "page-tab"}
+          className={page === "single" ? "page-tab page-tab-active" : "page-tab"}
           type="button"
-          onClick={() => setPage("random")}
+          onClick={() => setPage("single")}
         >
-          Random
+          Single Run
         </button>
         <button
-          className={
-            page === "buy-hold" ? "page-tab page-tab-active" : "page-tab"
-          }
+          className={page === "compare" ? "page-tab page-tab-active" : "page-tab"}
           type="button"
-          onClick={() => setPage("buy-hold")}
+          onClick={() => setPage("compare")}
         >
-          Buy and Hold
+          Compare
         </button>
       </nav>
 
-      {page === "random" ? <RandomBacktestPanel /> : <BuyHoldBacktestPanel />}
+      {page === "single" ? <SingleBacktestPage /> : <CompareBacktestsPage />}
     </main>
   );
 }

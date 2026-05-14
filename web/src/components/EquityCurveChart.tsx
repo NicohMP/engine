@@ -21,30 +21,43 @@ function EquityCurveChart({ points }: Props) {
   }));
 
   return (
-    <div style={{ width: "100%", height: 320 }}>
+    <div className="equity-chart">
       <ResponsiveContainer>
         <LineChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" />
+          <CartesianGrid stroke="#e4e7ec" strokeDasharray="3 3" />
 
-          <XAxis dataKey="date" />
+          <XAxis
+            dataKey="date"
+            minTickGap={32}
+            tick={{ fill: "#667085", fontSize: 12 }}
+            tickLine={false}
+          />
 
           <YAxis
             domain={["dataMin", "dataMax"]}
+            tick={{ fill: "#667085", fontSize: 12 }}
             tickFormatter={(value) => value.toFixed(0)}
+            tickLine={false}
+            width={72}
           />
 
           <Tooltip
+            contentStyle={{
+              border: "1px solid #d0d5dd",
+              borderRadius: 8,
+              boxShadow: "0 8px 24px rgba(16, 24, 40, 0.12)",
+            }}
             formatter={(value) =>
               typeof value === "number" ? value.toFixed(2) : value
             }
           />
 
           <Line
-            type="monotone"
             dataKey="equity"
+            dot={false}
             stroke="#2563eb"
             strokeWidth={2}
-            dot={false}
+            type="monotone"
           />
         </LineChart>
       </ResponsiveContainer>

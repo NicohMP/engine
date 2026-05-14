@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
-from typing import List, Optional, Sequence
+from time import perf_counter
+from typing import Sequence
 from pandas import DataFrame
 
 repo_root = Path(__file__).resolve().parents[1]
@@ -22,6 +23,7 @@ def run_random_backtest(
     initial_cash: float = 100000.0,
     seed: int = 42,
 ) -> dict:
+    total_start = perf_counter()
 
     # Fallback for empty tickers
     if tickers is None:
@@ -29,6 +31,7 @@ def run_random_backtest(
 
     # Using data source for financial data from yfinance. Eventually should support
     ds = DataSource(data_dir=DATA_DIR)
+    data_fetch_start = perf_counter()
     df: DataFrame = ds.get_ohlvc(
         tickers=tickers,
         start=start,
@@ -38,6 +41,7 @@ def run_random_backtest(
         auto_adjust=True,
         use_cache="refresh_missing",
     )
+    data_fetch_seconds = perf_counter() - data_fetch_start
 
     # Convert yfinance data to cpp Ticks
     ticks = [
@@ -96,7 +100,9 @@ def run_random_backtest(
         0.001,
     )
 
+    backtest_start = perf_counter()
     backtester.run()
+    backtest_run_seconds = perf_counter() - backtest_start
 
     equity = backtester.get_equity()
     orders = backtester.get_orders()
@@ -104,6 +110,7 @@ def run_random_backtest(
     symbols = [store.get_symbol(i) for i in universe_ids]
     initial_equity = float(equity[0][1]) if equity else initial_cash
     final_equity = float(equity[-1][1]) if equity else initial_cash
+    total_seconds = perf_counter() - total_start
 
     return {
         "run_config": {
@@ -124,6 +131,11 @@ def run_random_backtest(
             "equity_points": len(equity),
             "orders": len(orders),
             "fills": len(fills),
+        },
+        "timing": {
+            "data_fetch_seconds": data_fetch_seconds,
+            "backtest_run_seconds": backtest_run_seconds,
+            "total_seconds": total_seconds,
         },
         "symbols": symbols,
         "equity_curve": [

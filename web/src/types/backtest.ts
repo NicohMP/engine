@@ -22,6 +22,13 @@ export type BacktestSummary = {
   fills: number;
 };
 
+// Timing metrics measured by the Python backtest runner.
+export type BacktestTiming = {
+  data_fetch_seconds: number;
+  backtest_run_seconds: number;
+  total_seconds: number;
+};
+
 // One point in the portfolio equity curve.
 export type EquityPoint = {
   timestamp: number;
@@ -32,6 +39,7 @@ export type EquityPoint = {
 export type BacktestResult = {
   run_config: Record<string, unknown>;
   summary: BacktestSummary;
+  timing: BacktestTiming;
   symbols: string[];
   equity_curve: EquityPoint[];
 };

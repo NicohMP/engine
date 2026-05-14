@@ -5,18 +5,37 @@ type Props = {
 };
 
 function BacktestSummary({ result }: Props) {
+  const metrics = [
+    ["Initial equity", result.summary.initial_equity.toFixed(2)],
+    ["Final equity", result.summary.final_equity.toFixed(2)],
+    ["PNL", result.summary.pnl.toFixed(2)],
+    ["Return", `${result.summary.return_pct.toFixed(2)}%`],
+    ["Orders", result.summary.orders.toLocaleString()],
+    ["Fills", result.summary.fills.toLocaleString()],
+    ["Equity points", result.summary.equity_points.toLocaleString()],
+    ["Data fetch", `${result.timing.data_fetch_seconds.toFixed(3)}s`],
+    ["Backtest run", `${result.timing.backtest_run_seconds.toFixed(3)}s`],
+    ["Total", `${result.timing.total_seconds.toFixed(3)}s`],
+  ];
+
   return (
     <div>
-        {/* Join turns ["AAPL", "AMZN"] into "AAPL, AMZN". */}
-        <p>Symbols: {result.symbols.join(", ")}</p>
-        {/* toFixed(2) formats numbers with two decimals for display. */}
-        <p>Initial equity: {result.summary.initial_equity.toFixed(2)}</p>
-        <p>Final equity: {result.summary.final_equity.toFixed(2)}</p>
-        <p>PNL: {result.summary.pnl.toFixed(2)}</p>
-        <p>Return: {result.summary.return_pct.toFixed(2)}%</p>
-        <p>Orders: {result.summary.orders}</p>
-        <p>Fills: {result.summary.fills}</p>
-        <p>Equity points: {result.summary.equity_points}</p>
+      <div className="summary-header">
+        <div>
+          <p className="section-kicker">Results</p>
+          <h3>Backtest Summary</h3>
+        </div>
+        <span className="symbol-pill">{result.symbols.join(", ")}</span>
+      </div>
+
+      <div className="metric-grid">
+        {metrics.map(([label, value]) => (
+          <div className="metric" key={label}>
+            <span className="metric-label">{label}</span>
+            <strong className="metric-value">{value}</strong>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

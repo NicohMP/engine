@@ -6,3 +6,4 @@ yfinance
 pyarrow
 pybind11
 matplotlib
+torch

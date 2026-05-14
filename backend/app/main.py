@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from supabase import create_client
 
@@ -13,6 +14,18 @@ sys.path.insert(0, str(REPO_ROOT / "build"))
 from ml.run_random_backtest import run_random_backtest
 
 app = FastAPI(title="Trading Engine API")  # Create API application project
+
+# Middle ware allowing vite to talk to api backend (i think)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class SimulationRunCreate(BaseModel):

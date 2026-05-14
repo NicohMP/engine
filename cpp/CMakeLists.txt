@@ -84,6 +84,7 @@ pybind11_add_module(engine_cpp
     core/event_types.cpp
     strategy/base.cpp
     strategy/random.cpp
+    strategy/buy_and_hold.cpp
     backtest/backtester.cpp
     execution/execution_engine.cpp
     risk/simple.cpp

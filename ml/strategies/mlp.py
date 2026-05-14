@@ -1,14 +1,24 @@
-from typing import List, Optional, Dict
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
-import torch
-import torch.nn as nn
 from collections import deque
 
 from ..events import MarketEvent, OrderEvent
 from ..portfolio import Portfolio
 from ..features import analytics as an
 from .base import Strategy, _build_order_to_target_notional
+
+
+def _require_torch():
+    try:
+        import torch
+    except ImportError as exc:
+        raise ImportError(
+            "DumbMLPStrategy requires torch. Install the full project requirements "
+            "before using this strategy."
+        ) from exc
+
+    return torch
 
 
 class DumbMLPStrategy(Strategy):
@@ -18,7 +28,9 @@ class DumbMLPStrategy(Strategy):
         Strategy (_type_): _description_
     """
 
-    def __init__(self, mlp: nn.Module, universe: List[str], target_notional: float):
+    def __init__(self, mlp: Any, universe: List[str], target_notional: float):
+        self._torch = _require_torch()
+
         if len(universe) == 0:
             raise ValueError("universe must be non-empty")
         if target_notional <= 0.0:
@@ -90,13 +102,13 @@ class DumbMLPStrategy(Strategy):
             return None
 
         device = next(self.model.parameters()).device
-        feat_tensor = torch.tensor(
-            feat.to_numpy(), dtype=torch.float32, device=device
+        feat_tensor = self._torch.tensor(
+            feat.to_numpy(), dtype=self._torch.float32, device=device
         ).unsqueeze(0)
 
-        with torch.no_grad():
+        with self._torch.no_grad():
             logits = self.model(feat_tensor)
-            pred_class = int(torch.argmax(logits, dim=1).item())
+            pred_class = int(self._torch.argmax(logits, dim=1).item())
 
         # Class convention: {0,1,2} -> {-1,0,1}
         signal = pred_class - 1

@@ -5,13 +5,13 @@ import sys
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from supabase import create_client
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(REPO_ROOT / "build"))
 
 from ml.run_random_backtest import run_random_backtest
+from ml.run_buy_and_hold import run_buy_hold_backtest
 
 app = FastAPI(title="Trading Engine API")  # Create API application project
 
@@ -66,6 +66,14 @@ def supabase_is_configured() -> bool:
 
 
 def get_supabase_client():
+    try:
+        from supabase import create_client
+    except ImportError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Supabase support is not installed in this environment",
+        ) from exc
+
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
 
     if os.getenv("SUPABASE_URL") in (None, "", "not-configured") or key in (
@@ -149,6 +157,13 @@ class RandomBacktestRequest(BaseModel):
     seed: int = 42
 
 
+class BuyHoldBacktestRequest(BaseModel):
+    tickers: list[str] = Field(default_factory=lambda: ["AAPL", "AMZN"], min_length=1)
+    start: str = "2026-01-01"
+    end: str = "2026-05-01"
+    initial_cash: float = Field(default=100000.0, gt=0)
+
+
 # Endpoint for random backtest request
 @app.post("/backtests/random")
 def run_random_backtest_endpoint(request: RandomBacktestRequest):
@@ -160,6 +175,19 @@ def run_random_backtest_endpoint(request: RandomBacktestRequest):
             target_notional=request.target_notional,
             initial_cash=request.initial_cash,
             seed=request.seed,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/backtests/buy-and-hold")
+def run_buy_hold_backtest_endpoint(request: BuyHoldBacktestRequest):
+    try:
+        return run_buy_hold_backtest(
+            tickers=request.tickers,
+            start=request.start,
+            end=request.end,
+            initial_cash=request.initial_cash,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc

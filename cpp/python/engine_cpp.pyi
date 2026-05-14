@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Sequence, Mapping
 from enum import Enum
 from typing import overload
 
@@ -244,6 +244,13 @@ class RandomStrategy(Strategy):
         target_notional: float,
         probabilities: Sequence[float] | None = None,
         seed: int = 42,
+    ) -> None: ...
+
+class BuyHoldStrategy(Strategy):
+    def __init__(
+        self,
+        universe_ids: Sequence[SymbolId],
+        distribution: Mapping[SymbolId, float] | None = None,
     ) -> None: ...
 
 class RiskManagerBase:

@@ -2,6 +2,7 @@
 
 #include "strategy/base.hpp"
 #include "strategy/random.hpp"
+#include "strategy/buy_and_hold.hpp"
 
 #include <pybind11/stl.h>
 
@@ -55,6 +56,21 @@ void bind_strategy(py::module_& m) {
         .def(
             "on_market_event",
             &RandomStrategy::on_market_event,
+            py::arg("mevent"),
+            py::arg("portfolio"),
+            py::arg("features")
+        );
+
+
+    py::class_<BuyHoldStrategy, Strategy, py::smart_holder>(m, "BuyHoldStrategy", "Buy and Hold strategy.")
+        .def(
+            py::init<std::vector<SymbolId>, std::optional<std::unordered_map<SymbolId,double>>>(),
+            py::arg("universe_ids"),
+            py::arg("distribution") = std::nullopt
+        )
+        .def(
+            "on_market_event",
+            &BuyHoldStrategy::on_market_event,
             py::arg("mevent"),
             py::arg("portfolio"),
             py::arg("features")

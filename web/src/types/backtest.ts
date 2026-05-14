@@ -9,6 +9,13 @@ export type RandomBacktestRequest = {
   seed: number;
 };
 
+export type BuyHoldBacktestRequest = {
+  tickers: string[];
+  start: string;
+  end: string;
+  initial_cash: number;
+};
+
 
 // TypeScript type describing the "summary" object returned by POST /backtests/random.
 export type BacktestSummary = {

@@ -236,6 +236,12 @@ class Strategy:
         portfolio: Portfolio,
         features: FeatureView,
     ) -> list[OrderEvent] | None: ...
+    def on_time_slice(
+        self,
+        events: Sequence[MarketEvent],
+        portfolio: Portfolio,
+        features: Sequence[FeatureView],
+    ) -> list[OrderEvent] | None: ...
 
 class RandomStrategy(Strategy):
     def __init__(
@@ -245,6 +251,12 @@ class RandomStrategy(Strategy):
         probabilities: Sequence[float] | None = None,
         seed: int = 42,
     ) -> None: ...
+    def on_time_slice(
+        self,
+        events: Sequence[MarketEvent],
+        portfolio: Portfolio,
+        features: Sequence[FeatureView],
+    ) -> list[OrderEvent] | None: ...
 
 class BuyHoldStrategy(Strategy):
     def __init__(
@@ -252,6 +264,12 @@ class BuyHoldStrategy(Strategy):
         universe_ids: Sequence[SymbolId],
         distribution: Mapping[SymbolId, float] | None = None,
     ) -> None: ...
+    def on_time_slice(
+        self,
+        events: Sequence[MarketEvent],
+        portfolio: Portfolio,
+        features: Sequence[FeatureView],
+    ) -> list[OrderEvent] | None: ...
 
 class RiskManagerBase:
     def __init__(self) -> None: ...
@@ -298,6 +316,52 @@ class Backtester:
         fee_rate: float = 0.0010,
     ) -> None: ...
     def run(self) -> None: ...
+    def get_equity(self) -> list[tuple[int, float]]: ...
+    def get_orders(self) -> list[OrderEvent]: ...
+    def get_fills(self) -> list[FillEvent]: ...
+    def get_fee_rate(self) -> float: ...
+
+class StepResult:
+    timestamp: int | None
+    new_orders: list[OrderEvent]
+    new_fills: list[FillEvent]
+    equity_after: float
+    total_orders: int
+    total_fills: int
+    def __init__(
+        self,
+        timestamp: int | None,
+        new_orders: Sequence[OrderEvent],
+        new_fills: Sequence[FillEvent],
+        equity_after: float,
+        total_orders: int,
+        total_fills: int,
+    ) -> None: ...
+
+class Simulator:
+    @overload
+    def __init__(
+        self,
+        universe: Sequence[SymbolId],
+        strategy: Strategy,
+        portfolio: Portfolio,
+        feature_config: FeatureConfig,
+        fee_rate: float = 0.0010,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        universe: Sequence[SymbolId],
+        strategy: Strategy,
+        portfolio: Portfolio,
+        feature_config: FeatureConfig,
+        risk_manager: RiskManagerBase | None,
+        fee_rate: float = 0.0010,
+    ) -> None: ...
+    def step_bar(self, mevent: MarketEvent) -> StepResult: ...
+    def step_timestamp(self, slice: Sequence[MarketEvent]) -> StepResult: ...
+    def reset_runtime(self) -> None: ...
+    def portfolio(self) -> Portfolio: ...
     def get_equity(self) -> list[tuple[int, float]]: ...
     def get_orders(self) -> list[OrderEvent]: ...
     def get_fills(self) -> list[FillEvent]: ...

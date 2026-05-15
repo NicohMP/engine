@@ -38,3 +38,8 @@ Makefile
 
 # Backend env
 .env
+
+
+
+# Archives
+*.zip

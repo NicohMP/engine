@@ -32,6 +32,21 @@ public:
             view
         );
     }
+
+    std::optional<std::vector<OrderEvent>> on_time_slice(
+        const std::vector<MarketEvent>& events,
+        const Portfolio& portfolio,
+        const std::vector<FeatureView>& views
+    ) override {
+        PYBIND11_OVERRIDE(
+            std::optional<std::vector<OrderEvent>>,
+            Strategy,
+            on_time_slice,
+            events,
+            portfolio,
+            views
+        );
+    }
 };
 
 void bind_strategy(py::module_& m) {
@@ -41,6 +56,12 @@ void bind_strategy(py::module_& m) {
             "on_market_event",
             &Strategy::on_market_event,
             py::arg("mevent"),
+            py::arg("portfolio"),
+            py::arg("features")
+        ).def(
+            "on_time_slice",
+            &Strategy::on_time_slice,
+            py::arg("events"),
             py::arg("portfolio"),
             py::arg("features")
         );
@@ -59,6 +80,12 @@ void bind_strategy(py::module_& m) {
             py::arg("mevent"),
             py::arg("portfolio"),
             py::arg("features")
+        ).def(
+            "on_time_slice",
+            &RandomStrategy::on_time_slice,
+            py::arg("events"),
+            py::arg("portfolio"),
+            py::arg("features")
         );
 
 
@@ -72,6 +99,13 @@ void bind_strategy(py::module_& m) {
             "on_market_event",
             &BuyHoldStrategy::on_market_event,
             py::arg("mevent"),
+            py::arg("portfolio"),
+            py::arg("features")
+        )
+        .def(
+            "on_time_slice",
+            &BuyHoldStrategy::on_time_slice,
+            py::arg("events"),
             py::arg("portfolio"),
             py::arg("features")
         );

@@ -12,4 +12,5 @@ PYBIND11_MODULE(engine_cpp, m) {
     bind_strategy(m);
     bind_risk(m);
     bind_backtest(m);
+    bind_simulator(m);
 }

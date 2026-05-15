@@ -65,13 +65,14 @@ StepResult Simulator::step_bar(const MarketEvent& mevent){
 StepResult Simulator::step_timestamp(const std::vector<MarketEvent>& slice){
     /* Process a whole timestamp data for all considered assets*/
     // If slice is empty, return old values, null timestamp, and empty new_orders/fills.
-    if (slice.empty()){
-        StepResult out{
-            std::nullopt,{},{},
-            engine_.get_equity().back().second,
-            engine_.get_orders().size(),
-            engine_.get_fills().size()
-        };
+    if (slice.empty()) {
+        StepResult out{};
+        out.timestamp = std::nullopt;
+        out.new_orders = {};
+        out.new_fills = {};
+        out.equity_after = engine_.get_portfolio().total_equity();
+        out.total_orders = engine_.get_orders().size();
+        out.total_fills = engine_.get_fills().size();
         return out;
     }
 

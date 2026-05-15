@@ -11,3 +11,4 @@ void bind_execution(py::module_& m);
 void bind_strategy(py::module_& m);
 void bind_risk(py::module_& m);
 void bind_backtest(py::module_& m);
+void bind_simulator(py::module_& m);

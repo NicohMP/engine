@@ -23,7 +23,7 @@ BuyHoldStrategy::BuyHoldStrategy(
         }
 
         if (distribution){
-            // Main check : universe and distribution have the same ids
+            // Main check : universe and distribution have the same ids after deduplication
             bool same_keys = distribution->size() == u_ids.size();
             for (const auto& [id, weight] : *distribution) {
                 if (std::find(universe_ids.begin(), universe_ids.end(), id) == universe_ids.end()) {

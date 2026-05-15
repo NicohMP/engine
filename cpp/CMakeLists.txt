@@ -86,6 +86,7 @@ pybind11_add_module(engine_cpp
     strategy/random.cpp
     strategy/buy_and_hold.cpp
     backtest/backtester.cpp
+    simulation/simulator.cpp
     execution/execution_engine.cpp
     risk/simple.cpp
     data/store/market_data_store.cpp
@@ -96,6 +97,7 @@ pybind11_add_module(engine_cpp
     data/features/feature_schema.cpp
     data/features/feature_engine.cpp
     data/features/feature_id.cpp
+    python/bind_simulator.cpp
 
 )
 

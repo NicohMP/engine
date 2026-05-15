@@ -191,7 +191,7 @@ void EngineCore::step_slice(const MarketEvent* begin, const MarketEvent* end){
 
     // If cross-section mode enabled, compute cross section (that's the heavy code so we're making it optional)
     const CrossSectionResult* xs = nullptr;
-    if (!feature_config_.enable_cross_section) {
+    if (feature_config_.enable_cross_section) {
         xs = feat_engine_.compute_cross_section_view(timestamp);
     }
 
@@ -235,14 +235,19 @@ void EngineCore::step_slice(const MarketEvent* begin, const MarketEvent* end){
                 if (!order.quantity || *order.quantity <= 0.0) {
                     throw std::runtime_error("Invalid order quantity");
                 }
-                event_queue_.push_back(Event{order});
+                orders_.push_back(order);
+                execution_engine_.pass_order(order);
             }
         }
     }
 
-    // Since drain_queue is event-wise for now we drain event per event. to be updated later
+    // Give each market event in the slice a chance to fill matching pending orders.
     for (const MarketEvent* it = begin; it != end; ++it) {
-        drain_event_queue(*it);
+        const std::vector<FillEvent> fills = execution_engine_.fill_orders(*it);
+        for (const FillEvent& fill : fills) {
+            fills_.push_back(fill);
+            portfolio.update_position(fill);
+        }
     }
 
     // Record equity after having processed the whole batch

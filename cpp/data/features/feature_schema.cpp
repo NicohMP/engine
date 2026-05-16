@@ -18,21 +18,21 @@ FeatureSchema::FeatureSchema(const std::vector<std::string>& names){
     }
     // Fill index map
     for (size_t i =0; i<names_.size(); i++){
-        features_.push_back(feature_id_from_name(names_[i])); // feature_id_from_name throws if name is unsupported
+        features_.push_back(feature_kind_from_name(names_[i])); // feature_kind_from_name throws if name is unsupported
         index_.emplace(features_[i],i);
 
     }
 }
 
-// Construct from vector of features (FeatureId)
-FeatureSchema::FeatureSchema(std::vector<FeatureId> features){
+// Construct from vector of features (FeatureKind)
+FeatureSchema::FeatureSchema(std::vector<FeatureKind> features){
     // Check non-empty features
     if (features.empty()){
         throw std::runtime_error("Input features can't be empty");
     }
     // Throw if duplicate names, fill features_ and names_
-    std::unordered_set<FeatureId, FeatureIdHash> seen;
-    for (const FeatureId& feat: features){
+    std::unordered_set<FeatureKind, FeatureKindHash> seen;
+    for (const FeatureKind& feat: features){
         if (!seen.insert(feat).second) {
             throw std::runtime_error("Duplicate feature id: " + feature_name(feat));
         }
@@ -69,24 +69,24 @@ const std::string& FeatureSchema::name(std::size_t idx) const{
     return names_[idx];
 }
 
-const std::vector<FeatureId>& FeatureSchema::features() const{
+const std::vector<FeatureKind>& FeatureSchema::features() const{
     if (empty()){
         throw std::runtime_error("No features in schema");
     }
     return features_;
 }
 
-FeatureId FeatureSchema::feature(std::size_t idx) const{
+FeatureKind FeatureSchema::feature(std::size_t idx) const{
     if (idx >= features_.size()){ throw std::runtime_error("Index out of range");}
     return features_[idx];
 }
 
 
-bool FeatureSchema::contains(FeatureId id) const{
+bool FeatureSchema::contains(FeatureKind id) const{
     return index_.find(id) != index_.end();
 }
 
-std::size_t FeatureSchema::index_of(FeatureId id) const{
+std::size_t FeatureSchema::index_of(FeatureKind id) const{
     auto it = index_.find(id);
     if (it == index_.end()) {
         throw std::runtime_error("Feature id not supported: " + feature_name(id));

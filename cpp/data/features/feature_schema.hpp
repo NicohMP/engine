@@ -3,27 +3,27 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "feature_id.hpp"
+#include "config/feature_kind.hpp"
 
 class FeatureSchema {
 public:
-    explicit FeatureSchema(std::vector<FeatureId> features);
+    explicit FeatureSchema(std::vector<FeatureKind> features);
     explicit FeatureSchema(const std::vector<std::string>& names);
 
     std::size_t size() const;
     bool empty() const;
 
-    const std::vector<FeatureId>& features() const;
+    const std::vector<FeatureKind>& features() const;
     const std::vector<std::string>& names() const;
 
-    FeatureId feature(std::size_t idx) const;
+    FeatureKind feature(std::size_t idx) const;
     const std::string& name(std::size_t idx) const;
 
-    bool contains(FeatureId id) const;
-    std::size_t index_of(FeatureId id) const;
+    bool contains(FeatureKind id) const;
+    std::size_t index_of(FeatureKind id) const;
 
 private:
-    std::vector<FeatureId> features_;
+    std::vector<FeatureKind> features_;
     std::vector<std::string> names_;
-    std::unordered_map<FeatureId, std::size_t, FeatureIdHash> index_;
+    std::unordered_map<FeatureKind, std::size_t, FeatureKindHash> index_;
 };

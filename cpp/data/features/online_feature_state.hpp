@@ -25,7 +25,7 @@ class OnlineFeatureState {
         RollingMoments1D volume_moments_;
 
         // Feature compute methods
-        double compute_feature(FeatureId id) const;
+        double compute_feature(FeatureKind id) const;
         double feature_logret_1d() const;
         double feature_ret_1d() const;
         double feature_ret_var() const;

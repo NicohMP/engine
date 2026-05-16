@@ -106,23 +106,23 @@ double OnlineFeatureState::feature_high_low_range() const{
     return has_last_high_low_range_ ? last_high_low_range_ : nan_value();
 }
 
-double OnlineFeatureState::compute_feature(FeatureId id) const{
+double OnlineFeatureState::compute_feature(FeatureKind id) const{
     switch (id) {
-    case FeatureId::Ret1D:
+    case FeatureKind::Return:
         return feature_ret_1d();
-    case FeatureId::LogRet1D:
+    case FeatureKind::LogReturn:
         return feature_logret_1d();
-    case FeatureId::RetVar:
+    case FeatureKind::ReturnVariance:
         return feature_ret_var();
-    case FeatureId::RetVol:
+    case FeatureKind::ReturnVolatility:
         return feature_ret_vol();
-    case FeatureId::PriceZ:
+    case FeatureKind::PriceZ:
         return feature_price_z();
-    case FeatureId::VolumeZ:
+    case FeatureKind::VolumeZ:
         return feature_volume_z();
-    case FeatureId::HighLowRange:
+    case FeatureKind::HighLowRange:
         return feature_high_low_range();
-    case FeatureId::CloseToSma:
+    case FeatureKind::CloseToSma:
         return feature_close_to_sma();
     }
     throw std::runtime_error("Unsupported feature id");
@@ -132,7 +132,7 @@ FeatureRow OnlineFeatureState::to_feature_row(const FeatureSchema& schema) const
     // Build feature values vector and allocate memory
     std::vector<double> values;
     values.reserve(schema.size());
-    for (const FeatureId& feat:schema.features()){
+    for (const FeatureKind& feat:schema.features()){
         values.push_back(compute_feature(feat));
     }
     FeatureRow feat_row{id_, std::move(values)};

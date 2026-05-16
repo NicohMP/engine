@@ -1,40 +1,58 @@
-*.o
-*.obj
-.out
-*.a
-*.so
-*.dylib
-*.exe
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-Makefile
+# OS/editor noise
 .DS_Store
-EOF
 .vscode/
-.env/
-ml/data/
-ml/notebooks/
 
-# Python bytecode/cache
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Python
+.venv/
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Pybind builds / bindings
+# Python data/research artifacts
+ml/data/
+ml/notebooks/
+
+# C/C++ build artifacts
+*.o
+*.obj
+*.a
 *.so
 *.pyd
 *.dylib
-
-# C++ / CMake build artifacts
-build/
-build-release/
-build-fast/
-cmake-build-*/
+*.dll
+*.exe
+*.out
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
 Makefile
+build/
+build-*/
+cmake-build-*/
 
-# Implemetation schedules
+# Frontend
+web/node_modules/
+web/dist/
+web/.vite/
+web/*.tsbuildinfo
+web/node_modules/.tmp/
+
+# Supabase local state
+supabase/.temp/
+supabase/.branches/
+
+# Logs and archives
+*.log
+*.zip
+
+# Local planning scratch files
 mvp-week*.md

@@ -8,14 +8,14 @@
 #include <stdexcept>
 
 namespace {
-MarketEvent make_event(int64_t ts, SymbolId id, double close) {
+MarketEvent make_event(int64_t ts, SymbolId id, double close, double volume = 1000.0) {
     return MarketEvent{
         ts,
         id,
         close,
         close,
         close,
-        1000.0,
+        volume,
         close,
     };
 }
@@ -37,7 +37,7 @@ int main() {
         });
 
         // First bar: initializes previous close only.
-        bool pushed = state.push(make_event(1, id, 100.0));
+        bool pushed = state.push(make_event(1, id, 100.0, 1000.0));
         assert(!pushed);
         assert(!state.ready());
         FeatureRow row = state.to_feature_row(schema);
@@ -50,7 +50,7 @@ int main() {
         assert(std::abs(row.values[schema.index_of(FeatureId::HighLowRange)]) < 1e-12);
 
         // Second bar: first return is available.
-        pushed = state.push(make_event(2, id, 110.0));
+        pushed = state.push(make_event(2, id, 110.0, 1100.0));
         assert(pushed);
         assert(!state.ready());
         row = state.to_feature_row(schema);
@@ -59,7 +59,7 @@ int main() {
         assert(std::isnan(row.values[schema.index_of(FeatureId::RetVar)]));
 
         // Third bar: price rolling window ready, return rolling window still warming up.
-        pushed = state.push(make_event(3, id, 121.0));
+        pushed = state.push(make_event(3, id, 121.0, 1200.0));
         assert(pushed);
         assert(!state.ready());
         row = state.to_feature_row(schema);
@@ -69,7 +69,7 @@ int main() {
         assert(std::isfinite(row.values[schema.index_of(FeatureId::CloseToSma)]));
 
         // Fourth bar: return rolling window ready, returns are constant => zero variance.
-        pushed = state.push(make_event(4, id, 133.1));
+        pushed = state.push(make_event(4, id, 133.1, 1300.0));
         assert(pushed);
         assert(state.ready());
         row = state.to_feature_row(schema);

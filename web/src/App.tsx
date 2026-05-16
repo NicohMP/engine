@@ -2,9 +2,10 @@ import "./App.css";
 import { useState } from "react";
 import ApiHealthCard from "./components/layout/ApiHealthCard";
 import CompareBacktestsPage from "./pages/CompareBacktestsPage";
+import OnlineSimulationPage from "./pages/OnlineSimulationPage";
 import SingleBacktestPage from "./pages/SingleBacktestPage";
 
-type Page = "single" | "compare";
+type Page = "single" | "compare" | "online";
 
 function App() {
   const [page, setPage] = useState<Page>("single");
@@ -35,9 +36,18 @@ function App() {
         >
           Compare
         </button>
+        <button
+          className={page === "online" ? "page-tab page-tab-active" : "page-tab"}
+          type="button"
+          onClick={() => setPage("online")}
+        >
+          Online
+        </button>
       </nav>
 
-      {page === "single" ? <SingleBacktestPage /> : <CompareBacktestsPage />}
+      {page === "single" && <SingleBacktestPage />}
+      {page === "compare" && <CompareBacktestsPage />}
+      {page === "online" && <OnlineSimulationPage />}
     </main>
   );
 }

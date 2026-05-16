@@ -175,7 +175,8 @@
   font-weight: 700;
 }
 
-.form-row input {
+.form-row input,
+.form-row select {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid #d0d5dd;
@@ -187,7 +188,8 @@
   font-size: 14px;
 }
 
-.form-row input:focus {
+.form-row input:focus,
+.form-row select:focus {
   border-color: #2563eb;
   outline: 3px solid rgba(37, 99, 235, 0.14);
 }
@@ -453,6 +455,17 @@
   height: 360px;
 }
 
+.online-diagnostics-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.last-seen-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 @media (max-width: 860px) {
   .app {
     padding: 22px 14px 36px;
@@ -472,7 +485,7 @@
 
   .page-tabs {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     width: 100%;
   }
 

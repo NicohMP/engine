@@ -3,6 +3,8 @@ import type {
   BacktestResult,
   BacktestFormValues,
   BuyHoldBacktestRequest,
+  OnlineSimulationRequest,
+  OnlineSimulationResult,
   RandomBacktestRequest,
   StrategyId,
   StrategyOption,
@@ -63,4 +65,16 @@ export async function runBuyHoldBacktest(request: BuyHoldBacktestRequest) {
   });
 
   return response.json() as Promise<BacktestResult>;
+}
+
+export async function runRandomOnlineSimulation(
+  request: OnlineSimulationRequest
+) {
+  const response = await apiFetch("/online-simulations/random", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  return response.json() as Promise<OnlineSimulationResult>;
 }

@@ -84,3 +84,46 @@ export type BacktestRun = {
   strategy: StrategyOption;
   result: BacktestResult;
 };
+
+export type OnlineSimulationRequest = {
+  tickers: string[];
+  lookback_minutes: number;
+  interval: string;
+  max_polls: number;
+  poll_seconds: number;
+  target_notional: number;
+  initial_cash: number;
+  seed: number;
+};
+
+export type OnlineSimulationSummary = {
+  polls: number;
+  processed_slices: number;
+  orders: number;
+  fills: number;
+  final_equity: number;
+};
+
+export type OnlinePollResult = {
+  poll: number;
+  fetched_rows: number;
+  new_rows: number;
+  new_slices: number;
+  step_results: number;
+  last_seen_by_ticker: Record<string, number>;
+  seconds: number;
+};
+
+export type OnlineSimulationResult = {
+  run_config: Record<string, unknown>;
+  summary: OnlineSimulationSummary;
+  timing: {
+    total_seconds: number;
+  };
+  symbols: string[];
+  last_seen_by_ticker: Record<string, number>;
+  poll_results: OnlinePollResult[];
+  step_results: Array<Record<string, unknown>>;
+  equity_curve: EquityPoint[];
+  price_curve: PricePoint[];
+};

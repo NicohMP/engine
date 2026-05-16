@@ -12,6 +12,7 @@ sys.path.insert(0, str(REPO_ROOT / "build"))
 
 from ml.run_random_backtest import run_random_backtest
 from ml.run_buy_and_hold import run_buy_hold_backtest
+from ml.run_online_simulation import poll_random_online_simulation
 
 app = FastAPI(title="Trading Engine API")  # Create API application project
 
@@ -164,6 +165,17 @@ class BuyHoldBacktestRequest(BaseModel):
     initial_cash: float = Field(default=100000.0, gt=0)
 
 
+class RandomOnlineSimulationRequest(BaseModel):
+    tickers: list[str] = Field(default_factory=lambda: ["AAPL", "AMZN"], min_length=1)
+    lookback_minutes: int = Field(default=120, gt=0)
+    interval: str = "1m"
+    max_polls: int = Field(default=1, gt=0)
+    poll_seconds: float = Field(default=0.0, ge=0)
+    target_notional: float = Field(default=1000.0, gt=0)
+    initial_cash: float = Field(default=100000.0, gt=0)
+    seed: int = 42
+
+
 # Endpoint for random backtest request
 @app.post("/backtests/random")
 def run_random_backtest_endpoint(request: RandomBacktestRequest):
@@ -188,6 +200,23 @@ def run_buy_hold_backtest_endpoint(request: BuyHoldBacktestRequest):
             start=request.start,
             end=request.end,
             initial_cash=request.initial_cash,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.post("/online-simulations/random")
+def run_random_online_simulation_endpoint(request: RandomOnlineSimulationRequest):
+    try:
+        return poll_random_online_simulation(
+            tickers=request.tickers,
+            lookback_minutes=request.lookback_minutes,
+            interval=request.interval,
+            max_polls=request.max_polls,
+            poll_seconds=request.poll_seconds,
+            target_notional=request.target_notional,
+            initial_cash=request.initial_cash,
+            seed=request.seed,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc

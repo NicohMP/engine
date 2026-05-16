@@ -1,9 +1,9 @@
 #include "bindings.hpp"
 
 #include "data/features/cross_section.hpp"
-#include "data/features/feature_config.hpp"
+#include "data/features/config/feature_config.hpp"
 #include "data/features/feature_engine.hpp"
-#include "data/features/feature_id.hpp"
+#include "data/features/config/feature_kind.hpp"
 #include "data/features/feature_schema.hpp"
 #include "data/features/feature_types.hpp"
 
@@ -12,19 +12,19 @@
 #include <utility>
 
 void bind_features(py::module_& m) {
-    py::enum_<FeatureId>(m, "FeatureId", "Supported online feature id.")
-        .value("Ret1D", FeatureId::Ret1D)
-        .value("LogRet1D", FeatureId::LogRet1D)
-        .value("RetVar", FeatureId::RetVar)
-        .value("RetVol", FeatureId::RetVol)
-        .value("PriceZ", FeatureId::PriceZ)
-        .value("VolumeZ", FeatureId::VolumeZ)
-        .value("HighLowRange", FeatureId::HighLowRange)
-        .value("CloseToSma", FeatureId::CloseToSma)
+    py::enum_<FeatureKind>(m, "FeatureKind", "Supported online feature id.")
+        .value("Return", FeatureKind::Return)
+        .value("LogReturn", FeatureKind::LogReturn)
+        .value("ReturnVariance", FeatureKind::ReturnVariance)
+        .value("ReturnVolatility", FeatureKind::ReturnVolatility)
+        .value("PriceZ", FeatureKind::PriceZ)
+        .value("VolumeZ", FeatureKind::VolumeZ)
+        .value("HighLowRange", FeatureKind::HighLowRange)
+        .value("CloseToSma", FeatureKind::CloseToSma)
         .export_values();
 
     py::class_<FeatureSchema>(m, "FeatureSchema", "Ordered online feature schema.")
-        .def(py::init<std::vector<FeatureId>>(), py::arg("features"))
+        .def(py::init<std::vector<FeatureKind>>(), py::arg("features"))
         .def(py::init<const std::vector<std::string>&>(), py::arg("names"))
         .def("size", &FeatureSchema::size)
         .def("empty", &FeatureSchema::empty)

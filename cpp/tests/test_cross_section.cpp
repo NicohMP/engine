@@ -1,5 +1,5 @@
 #include "data/features/cross_section.hpp"
-#include "data/features/feature_id.hpp"
+#include "data/features/config/feature_kind.hpp"
 #include "data/features/feature_schema.hpp"
 #include "data/features/online_feature_state.hpp"
 
@@ -22,7 +22,7 @@ int main() {
     OnlineFeatureState s1(id1, 3);
     OnlineFeatureState s2(id2, 3);
     OnlineFeatureState s3(id3, 3);
-    FeatureSchema schema({FeatureId::Ret1D});
+    FeatureSchema schema({FeatureKind::Return});
 
     // Warmup first close.
     bool pushed = s1.push(mevent(1, id1, 100.0));

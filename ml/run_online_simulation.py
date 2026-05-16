@@ -132,7 +132,7 @@ def create_random_simulator(
         init_cash=initial_cash
     )
     feat_config: engine_cpp.FeatureConfig = engine_cpp.FeatureConfig(
-        schema=engine_cpp.FeatureSchema([engine_cpp.FeatureId.Ret1D]),
+        schema=engine_cpp.FeatureSchema([engine_cpp.FeatureKind.Return]),
         window=20,
         enable_cross_section=False,
     )

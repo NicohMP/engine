@@ -86,7 +86,7 @@ def run_random_backtest(
 
     # Prepare feature configuration class with empty schema (no features compputed)
     feature_config = engine_cpp.FeatureConfig(
-        engine_cpp.FeatureSchema([engine_cpp.FeatureId.Ret1D]),
+        engine_cpp.FeatureSchema([engine_cpp.FeatureKind.Return]),
         window=20,
         enable_cross_section=False,
     )

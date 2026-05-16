@@ -1,5 +1,5 @@
 #include "data/features/feature_engine.hpp"
-#include "data/features/feature_id.hpp"
+#include "data/features/config/feature_kind.hpp"
 #include "data/features/feature_schema.hpp"
 
 #include <cassert>
@@ -17,13 +17,13 @@ int main() {
     const SymbolId id1 = 1;
     const SymbolId id2 = 2;
     FeatureSchema schema({
-        FeatureId::Ret1D,
-        FeatureId::LogRet1D,
-        FeatureId::RetVar,
-        FeatureId::RetVol,
-        FeatureId::PriceZ,
-        FeatureId::VolumeZ,
-        FeatureId::CloseToSma,
+        FeatureKind::Return,
+        FeatureKind::LogReturn,
+        FeatureKind::ReturnVariance,
+        FeatureKind::ReturnVolatility,
+        FeatureKind::PriceZ,
+        FeatureKind::VolumeZ,
+        FeatureKind::CloseToSma,
     });
     FeatureEngine engine({id2, id1}, schema, 3);
 
@@ -56,10 +56,10 @@ int main() {
     const FeatureRow& row = *maybe_row;
     assert(row.symbol_id == id1);
     assert(row.values.size() == schema.size());
-    assert(std::abs(row.values[schema.index_of(FeatureId::Ret1D)] - 0.1) < 1e-12);
-    assert(std::abs(row.values[schema.index_of(FeatureId::RetVar)]) < 1e-12);
-    assert(std::isfinite(row.values[schema.index_of(FeatureId::PriceZ)]));
-    assert(std::isfinite(row.values[schema.index_of(FeatureId::CloseToSma)]));
+    assert(std::abs(row.values[schema.index_of(FeatureKind::Return)] - 0.1) < 1e-12);
+    assert(std::abs(row.values[schema.index_of(FeatureKind::ReturnVariance)]) < 1e-12);
+    assert(std::isfinite(row.values[schema.index_of(FeatureKind::PriceZ)]));
+    assert(std::isfinite(row.values[schema.index_of(FeatureKind::CloseToSma)]));
 
     const std::vector<FeatureRow> rows = engine.latest_rows();
     assert(rows.size() == 2);
@@ -72,8 +72,8 @@ int main() {
     assert((xs->symbols == std::vector<SymbolId>{id1, id2}));
     assert(xs->raw.size() == 2);
     assert(xs->raw[0].size() == schema.size());
-    assert(xs->rank_pct[0][schema.index_of(FeatureId::Ret1D)].has_value());
-    assert(xs->rank_pct[1][schema.index_of(FeatureId::Ret1D)].has_value());
+    assert(xs->rank_pct[0][schema.index_of(FeatureKind::Return)].has_value());
+    assert(xs->rank_pct[1][schema.index_of(FeatureKind::Return)].has_value());
 
     engine.reset();
     assert(!engine.ready_all());

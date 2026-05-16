@@ -1,0 +1,6 @@
+fastapi[standard]
+pandas
+numpy
+yfinance
+pyarrow
+pybind11

@@ -27,25 +27,25 @@ int main() {
     });
     FeatureEngine engine({id2, id1}, schema, 3);
 
-    bool produced = engine.push(mevent(1, id1, 100.0));
+    bool produced = engine.push(mevent(1, id1, 100.0, 1000.0));
     assert(!produced);
-    produced = engine.push(mevent(1, id2, 100.0));
+    produced = engine.push(mevent(1, id2, 100.0, 2000.0));
     assert(!produced);
     assert(!engine.ready_all());
 
-    produced = engine.push(mevent(2, id1, 110.0));
+    produced = engine.push(mevent(2, id1, 110.0, 1100.0));
     assert(!produced);
-    produced = engine.push(mevent(2, id2, 90.0));
-    assert(!produced);
-
-    produced = engine.push(mevent(3, id1, 121.0));
-    assert(!produced);
-    produced = engine.push(mevent(3, id2, 81.0));
+    produced = engine.push(mevent(2, id2, 90.0, 1900.0));
     assert(!produced);
 
-    produced = engine.push(mevent(4, id1, 133.1));
+    produced = engine.push(mevent(3, id1, 121.0, 1200.0));
+    assert(!produced);
+    produced = engine.push(mevent(3, id2, 81.0, 1800.0));
+    assert(!produced);
+
+    produced = engine.push(mevent(4, id1, 133.1, 1300.0));
     assert(produced);
-    produced = engine.push(mevent(4, id2, 72.9));
+    produced = engine.push(mevent(4, id2, 72.9, 1700.0));
     assert(produced);
     assert(engine.ready(id1));
     assert(engine.ready(id2));
@@ -63,8 +63,8 @@ int main() {
 
     const std::vector<FeatureRow> rows = engine.latest_rows();
     assert(rows.size() == 2);
-    assert(rows[0].symbol_id == id1);
-    assert(rows[1].symbol_id == id2);
+    assert(rows[0].symbol_id == id2);
+    assert(rows[1].symbol_id == id1);
 
     std::optional<CrossSectionResult> xs = engine.compute_cross_section(4);
     assert(xs.has_value());

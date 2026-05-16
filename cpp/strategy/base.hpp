@@ -18,6 +18,12 @@ class Strategy {
             const Portfolio& portfolio,
             const FeatureView& features
         ) = 0 ;
+        virtual std::optional<std::vector<OrderEvent>> on_time_slice(
+            const std::vector<MarketEvent>& events,
+            const Portfolio& portfolio,
+            const std::vector<FeatureView>& features
+        );
+
 };
 
 

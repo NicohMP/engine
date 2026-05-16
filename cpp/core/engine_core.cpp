@@ -165,17 +165,22 @@ void EngineCore::step(const MarketEvent& mevent){
 }
 
 void EngineCore::step_slice(const MarketEvent* begin, const MarketEvent* end){
+    // If its empty, do nothing
     if (begin == end) {
         return;
     }
-    if (!feature_config_.enable_cross_section) {
-        for (const MarketEvent* it = begin; it != end; ++it) {
-            step(*it);
+    
+    // Declare the ts we're working with
+    const int64_t timestamp = begin->timestamp;
+    
+    // Make sure it's the only timestamp in that slice we're given 
+    for (const MarketEvent* it = begin; it != end; ++it) {
+    if (it->timestamp != timestamp) {
+        throw std::runtime_error("EngineCore::step_slice requires one timestamp");
         }
-        return;
     }
 
-    const int64_t timestamp = begin->timestamp;
+    // Update all prices and features so portfolio adn feature engine are up to date
     for (const MarketEvent* it = begin; it != end; ++it) {
         if (it->timestamp != timestamp) {
             throw std::runtime_error("EngineCore::step_slice requires one timestamp");
@@ -184,20 +189,69 @@ void EngineCore::step_slice(const MarketEvent* begin, const MarketEvent* end){
         feat_engine_.push(*it);
     }
 
-    const CrossSectionResult* xs = feat_engine_.compute_cross_section_view(timestamp);
+    // If cross-section mode enabled, compute cross section (that's the heavy code so we're making it optional)
+    const CrossSectionResult* xs = nullptr;
+    if (feature_config_.enable_cross_section) {
+        xs = feat_engine_.compute_cross_section_view(timestamp);
+    }
+
+    // Build vectors for events and feature views
+    // Declare vectors
+    std::vector<MarketEvent> events;
+    std::vector<FeatureView> views;
+    // Reserve memory since we know their sizes
+    events.reserve(static_cast<size_t>(end - begin));
+    views.reserve(static_cast<size_t>(end - begin));
+    // For each mevent, add it to he events vector and add the corresponding feature row from crosssection to the features vector
     for (const MarketEvent* it = begin; it != end; ++it) {
         const MarketEvent& market_event = *it;
         const FeatureRow* row = feat_engine_.latest_row(market_event.symbol_id);
-        FeatureView view{
+
+        events.push_back(market_event);
+        views.push_back(FeatureView{
             market_event.timestamp,
             &feature_config_.schema,
             row,
             xs
-        };
-        process_market_decision(market_event, view);
-        drain_event_queue(market_event);
-        equity_.push_back({market_event.timestamp, portfolio.total_equity()});
+        });
     }
+
+    // strategy decisions based on time slice
+    auto maybe_orders = strategy_->on_time_slice(events, portfolio, views);
+
+    // Risk check produced orders batch
+    if (maybe_orders) {
+        std::optional<std::vector<OrderEvent>> accepted_orders = maybe_orders;
+
+        if (risk_manager_) {
+            accepted_orders = risk_manager_->accept_order_batch(*maybe_orders, portfolio);
+        }
+
+        if (accepted_orders) {
+            for (OrderEvent order : *accepted_orders) {
+                if (order.id == 0) {
+                    order.id = generate_order_id();
+                }
+                if (!order.quantity || *order.quantity <= 0.0) {
+                    throw std::runtime_error("Invalid order quantity");
+                }
+                orders_.push_back(order);
+                execution_engine_.pass_order(order);
+            }
+        }
+    }
+
+    // Give each market event in the slice a chance to fill matching pending orders.
+    for (const MarketEvent* it = begin; it != end; ++it) {
+        const std::vector<FillEvent> fills = execution_engine_.fill_orders(*it);
+        for (const FillEvent& fill : fills) {
+            fills_.push_back(fill);
+            portfolio.update_position(fill);
+        }
+    }
+
+    // Record equity after having processed the whole batch
+    equity_.push_back({timestamp, portfolio.total_equity()});
 }
 
 void EngineCore::step_slice(const std::vector<MarketEvent>& events){

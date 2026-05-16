@@ -29,6 +29,12 @@ class  SMAStrategy : public Strategy {
         virtual std::optional<std::vector<OrderEvent>> on_market_event(
             const MarketEvent& mevent,
             const Portfolio& Portfolio,
-            const FeatureView& features) override;
+            const FeatureView& features
+        ) override;
+        std::optional<std::vector<OrderEvent>> on_time_slice(
+            const std::vector<MarketEvent>& events,
+            const Portfolio& portfolio,
+            const std::vector<FeatureView>& features
+        ) override;
         virtual void reset() override {};
 };

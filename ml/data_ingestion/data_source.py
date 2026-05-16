@@ -65,7 +65,7 @@ class DataSource:
     DEFAULT_OHLCV_PERIOD_BY_INTERVAL = {
         "1d": "25y",
         "1h": "730d",
-        "1m": "30d",
+        "1m": "3d",
     }
 
     DEFAULT_OHLCV_ROWS = 5000

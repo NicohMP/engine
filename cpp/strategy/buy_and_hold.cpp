@@ -1,5 +1,6 @@
 #include "buy_and_hold.hpp"
 #include <unordered_set>
+#include <unordered_map>
 #include <stdexcept>
 #include <cmath>
 #include <algorithm>
@@ -22,7 +23,7 @@ BuyHoldStrategy::BuyHoldStrategy(
         }
 
         if (distribution){
-            // Main check : universe and distribution have the same ids
+            // Main check : universe and distribution have the same ids after deduplication
             bool same_keys = distribution->size() == u_ids.size();
             for (const auto& [id, weight] : *distribution) {
                 if (std::find(universe_ids.begin(), universe_ids.end(), id) == universe_ids.end()) {
@@ -99,6 +100,75 @@ std::optional<std::vector<OrderEvent>> BuyHoldStrategy::on_market_event(
     return orders;
 
 }
+
+std::optional<std::vector<OrderEvent>> BuyHoldStrategy::on_time_slice(
+    const std::vector<MarketEvent>& events,
+    const Portfolio& portfolio,
+    const std::vector<FeatureView>& features
+) {
+    (void)features;
+
+    if (invested_) {
+        return std::nullopt;
+    }
+
+    std::unordered_map<SymbolId, const MarketEvent*> event_by_symbol;
+    event_by_symbol.reserve(events.size());
+
+    for (const MarketEvent& event : events) {
+        event_by_symbol[event.symbol_id] = &event;
+    }
+
+    for (const SymbolId& id : universe_ids) {
+        if (event_by_symbol.find(id) == event_by_symbol.end()) {
+            return std::nullopt;
+        }
+    }
+
+    std::vector<OrderEvent> orders;
+
+    for (const SymbolId& id : universe_ids) {
+        const MarketEvent& event = *event_by_symbol.at(id);
+
+        double target_notional = weights_.at(id) * portfolio.total_equity();
+        double current_qty = 0.0;
+
+        if (portfolio.has_position(id)) {
+            current_qty = portfolio.position_qty(id);
+        }
+
+        std::optional<OrderEvent> order = build_order_to_target_notional(
+            id,
+            event.close,
+            target_notional,
+            current_qty
+        );
+
+        if (order) {
+            orders.push_back(*order);
+        }
+    }
+
+    for (const auto& [id, position] : portfolio.positions()) {
+        if (std::find(universe_ids.begin(), universe_ids.end(), id) == universe_ids.end()) {
+            std::optional<OrderEvent> order = flat_asset(id, position.get_quantity());
+
+            if (order) {
+                orders.push_back(*order);
+            }
+        }
+    }
+
+    invested_ = true;
+
+    if (orders.empty()) {
+        return std::nullopt;
+    }
+
+    return orders;
+}
+
+
 
 
 void BuyHoldStrategy::reset(){

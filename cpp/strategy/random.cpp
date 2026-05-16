@@ -72,3 +72,30 @@ std::optional<std::vector<OrderEvent>> RandomStrategy::on_market_event(
 
             
 }
+
+std::optional<std::vector<OrderEvent>> RandomStrategy::on_time_slice(
+    const std::vector<MarketEvent>& events,
+    const Portfolio& portfolio,
+    const std::vector<FeatureView>& features
+) {
+    if (events.size() != features.size()) {
+        throw std::runtime_error("events and features must have the same size");
+    }
+
+    std::vector<OrderEvent> batch;
+
+    for (size_t i = 0; i < events.size(); ++i) {
+        auto maybe_orders = on_market_event(events[i], portfolio, features[i]);
+
+        if (maybe_orders) {
+            batch.insert(batch.end(), maybe_orders->begin(), maybe_orders->end());
+        }
+    }
+
+    if (batch.empty()) {
+        return std::nullopt;
+    }
+
+    return batch;
+}
+

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Sequence, Mapping
 from enum import Enum
 from typing import overload
 
@@ -75,6 +75,7 @@ class MarketDataStore:
     def get_id(self, ticker: str) -> SymbolId: ...
     def bars(self) -> list[MarketEvent]: ...
     def slices(self) -> list[TimeSlice]: ...
+    def symbol_ids(self) -> list[SymbolId]: ...
 
 class BuildResult:
     store: MarketDataStore
@@ -191,10 +192,55 @@ class ExecutionEngine:
     def pass_order(self, order: OrderEvent) -> None: ...
     def fill_orders(self, market_event: MarketEvent) -> list[FillEvent]: ...
 
+class FeatureRow:
+    symbol_id: SymbolId
+    values: list[float]
+
+class CrossSectionResult:
+    timestamp: int
+    symbols: list[SymbolId]
+    raw: list[list[float]]
+    zscore: list[list[float | None]]
+    rank_pct: list[list[float | None]]
+
+class FeatureEngine:
+    def __init__(
+        self,
+        universe: Sequence[SymbolId],
+        schema: FeatureSchema,
+        window: int,
+    ) -> None: ...
+    def push(self, event: MarketEvent) -> bool: ...
+    def ready(self, id: SymbolId) -> bool: ...
+    def ready_all(self) -> bool: ...
+    def schema(self) -> FeatureSchema: ...
+    def universe(self) -> list[SymbolId]: ...
+    def latest_row(self, id: SymbolId) -> FeatureRow | None: ...
+    def latest_rows(self) -> list[FeatureRow]: ...
+    def compute_cross_section(self, timestamp: int) -> CrossSectionResult | None: ...
+    def reset(self) -> None: ...
+
+class FeatureView:
+    timestamp: int
+    def has_row(self) -> bool: ...
+    def has_cross_section(self) -> bool: ...
+    def row_symbol_id(self) -> SymbolId | None: ...
+    def row_values(self) -> list[float]: ...
+    def schema_names(self) -> list[str]: ...
+
 class Strategy:
     def __init__(self) -> None: ...
     def on_market_event(
-        self, mevent: MarketEvent, portfolio: Portfolio
+        self,
+        mevent: MarketEvent,
+        portfolio: Portfolio,
+        features: FeatureView,
+    ) -> list[OrderEvent] | None: ...
+    def on_time_slice(
+        self,
+        events: Sequence[MarketEvent],
+        portfolio: Portfolio,
+        features: Sequence[FeatureView],
     ) -> list[OrderEvent] | None: ...
 
 class RandomStrategy(Strategy):
@@ -205,6 +251,25 @@ class RandomStrategy(Strategy):
         probabilities: Sequence[float] | None = None,
         seed: int = 42,
     ) -> None: ...
+    def on_time_slice(
+        self,
+        events: Sequence[MarketEvent],
+        portfolio: Portfolio,
+        features: Sequence[FeatureView],
+    ) -> list[OrderEvent] | None: ...
+
+class BuyHoldStrategy(Strategy):
+    def __init__(
+        self,
+        universe_ids: Sequence[SymbolId],
+        distribution: Mapping[SymbolId, float] | None = None,
+    ) -> None: ...
+    def on_time_slice(
+        self,
+        events: Sequence[MarketEvent],
+        portfolio: Portfolio,
+        features: Sequence[FeatureView],
+    ) -> list[OrderEvent] | None: ...
 
 class RiskManagerBase:
     def __init__(self) -> None: ...
@@ -230,12 +295,14 @@ class SimpleRiskManager(RiskManagerBase):
     def acceptable(self, portfolio: Portfolio) -> bool: ...
 
 class Backtester:
+    # Stubs for overload methods which enable optional arguments here (overloads acutally enable more i think)
     @overload
     def __init__(
         self,
         data: MarketDataStore,
         strategy: Strategy,
         portfolio: Portfolio,
+        feature_config: FeatureConfig,
         fee_rate: float = 0.0010,
     ) -> None: ...
     @overload
@@ -244,6 +311,7 @@ class Backtester:
         data: MarketDataStore,
         strategy: Strategy,
         portfolio: Portfolio,
+        feature_config: FeatureConfig,
         risk_manager: RiskManagerBase | None,
         fee_rate: float = 0.0010,
     ) -> None: ...
@@ -253,7 +321,48 @@ class Backtester:
     def get_fills(self) -> list[FillEvent]: ...
     def get_fee_rate(self) -> float: ...
 
-def add(a: int, b: int) -> int: ...
-def generate_order_id() -> int: ...
-def reset_order_id_counter(start_id: int = 1) -> None: ...
-def parse_csv(path: str) -> list[Tick]: ...
+class StepResult:
+    timestamp: int | None
+    new_orders: list[OrderEvent]
+    new_fills: list[FillEvent]
+    equity_after: float
+    total_orders: int
+    total_fills: int
+    def __init__(
+        self,
+        timestamp: int | None,
+        new_orders: Sequence[OrderEvent],
+        new_fills: Sequence[FillEvent],
+        equity_after: float,
+        total_orders: int,
+        total_fills: int,
+    ) -> None: ...
+
+class Simulator:
+    @overload
+    def __init__(
+        self,
+        universe: Sequence[SymbolId],
+        strategy: Strategy,
+        portfolio: Portfolio,
+        feature_config: FeatureConfig,
+        fee_rate: float = 0.0010,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        universe: Sequence[SymbolId],
+        strategy: Strategy,
+        portfolio: Portfolio,
+        feature_config: FeatureConfig,
+        risk_manager: RiskManagerBase | None,
+        fee_rate: float = 0.0010,
+    ) -> None: ...
+    def step_bar(self, mevent: MarketEvent) -> StepResult: ...
+    def step_timestamp(self, slice: Sequence[MarketEvent]) -> StepResult: ...
+    def reset_runtime(self) -> None: ...
+    def portfolio(self) -> Portfolio: ...
+    def get_equity(self) -> list[tuple[int, float]]: ...
+    def get_orders(self) -> list[OrderEvent]: ...
+    def get_fills(self) -> list[FillEvent]: ...
+    def get_fee_rate(self) -> float: ...

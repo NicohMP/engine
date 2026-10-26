@@ -176,7 +176,7 @@ std::vector<Tick> parse_csv(string filepath) {
 
 }
 
-std::vector<Tick> parse_kline_csv(string filepath, string ticker) {
+std::vector<Tick> parse_kline_csv(std::string filepath, std::string ticker) {
     std::vector <Tick> all_ticks;
     std::string line;
     std::ifstream file = open_file(filepath);

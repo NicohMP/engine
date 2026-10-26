@@ -21,6 +21,8 @@ struct Kline {
     double taker_buy_quote;         // col 10
 }; 
 
+int64_t timestamp_to_int64(const std::string& timestamp);
+
 Kline parse_kline(std::string line);
 Tick kline_to_tick(const Kline& kline, const std::string& ticker);
 

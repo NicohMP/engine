@@ -4,6 +4,26 @@ C++ backtesting and online simulation engine for systematic trading research.
 
 The goal is to keep the hot path in C++ while exposing enough Python bindings for notebooks, experiments, and custom strategies.
 
+## Run locally
+
+From the repository root:
+
+```bash
+./scripts/setup.sh
+```
+
+This creates the Python environment, installs Python and frontend dependencies,
+and builds the C++ engine and `engine_cpp` bindings. It requires Python 3.12,
+CMake, and npm.
+
+Start the API and web UI:
+
+```bash
+./scripts/start.sh
+```
+
+Then open `http://localhost:5173`.
+
 ## Structure
 
 - `cpp/core/`: event types and engine loop
@@ -29,27 +49,7 @@ The goal is to keep the hot path in C++ while exposing enough Python bindings fo
 - Python bindings for research workflows
 - CMake build with CTest coverage
 
-## Build
 
-From the repository root:
-
-```bash
-cmake -S cpp -B build -DPython_EXECUTABLE="$PWD/.venv/bin/python"
-cmake --build build -j
-ctest --test-dir build --output-on-failure
-```
-
-Run the C++ benchmark app:
-
-```bash
-./build/engine
-```
-
-Use the Python extension:
-
-```bash
-PYTHONPATH=build .venv/bin/python -c "import engine_cpp; print(engine_cpp.__version__)"
-```
 
 ## Docker UI
 

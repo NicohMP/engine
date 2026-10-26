@@ -38,19 +38,8 @@ add_executable(engine
     data/features/feature_schema.hpp
     data/features/feature_schema.cpp
     data/features/feature_engine.cpp
-    data/features/config/feature_kind.hpp
-    data/features/config/feature_kind.cpp
-    data/features/calculators/moving_average.cpp
-    data/features/calculators/volatility.cpp
-    data/features/calculators/volatility.hpp
-    data/features/calculators/returns.cpp
-    data/features/calculators/log_returns.cpp
-    data/features/calculators/log_returns.hpp
-    data/features/calculators/close_to_sma.cpp
-    data/features/calculators/price_z.cpp
-    data/features/calculators/volume_z.cpp
-    data/features/calculators/high_low_range.cpp
-    data/features/factory/feature_factory.cpp
+    data/features/feature_id.hpp
+    data/features/feature_id.cpp
 )
 
 # Tell the `engine` executable where to look for project header files.
@@ -107,18 +96,8 @@ pybind11_add_module(engine_cpp
     data/features/cross_section.cpp
     data/features/feature_schema.cpp
     data/features/feature_engine.cpp
-    data/features/config/feature_kind.cpp
-    data/features/calculators/moving_average.cpp
-    data/features/calculators/volatility.cpp
-    data/features/calculators/returns.cpp
-    data/features/calculators/log_returns.cpp
-    data/features/calculators/close_to_sma.cpp
-    data/features/calculators/price_z.cpp
-    data/features/calculators/volume_z.cpp
-    data/features/calculators/high_low_range.cpp
-    data/features/factory/feature_factory.cpp
+    data/features/feature_id.cpp
     python/bind_simulator.cpp
-    signal/sma.hpp
 
 )
 
@@ -176,7 +155,7 @@ add_executable(test_online_feature_state
     data/features/online_feature_state.cpp
     data/features/rolling_moments.cpp
     data/features/feature_schema.cpp
-    data/features/config/feature_kind.cpp
+    data/features/feature_id.cpp
 )
 
 target_include_directories(test_online_feature_state PRIVATE
@@ -197,7 +176,7 @@ add_executable(test_feature_engine
     data/features/online_feature_state.cpp
     data/features/rolling_moments.cpp
     data/features/feature_schema.cpp
-    data/features/config/feature_kind.cpp
+    data/features/feature_id.cpp
     data/features/cross_section.cpp
 )
 
@@ -219,7 +198,7 @@ add_executable(test_cross_section
     data/features/online_feature_state.cpp
     data/features/rolling_moments.cpp
     data/features/feature_schema.cpp
-    data/features/config/feature_kind.cpp
+    data/features/feature_id.cpp
 )
 
 target_include_directories(test_cross_section PRIVATE
@@ -248,7 +227,7 @@ add_executable(test_engine_core_slice
     data/features/rolling_moments.cpp
     data/features/cross_section.cpp
     data/features/feature_schema.cpp
-    data/features/config/feature_kind.cpp
+    data/features/feature_id.cpp
 )
 
 target_include_directories(test_engine_core_slice PRIVATE

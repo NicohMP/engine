@@ -1,5 +1,5 @@
 #include "core/engine_core.hpp"
-#include "data/features/config/feature_kind.hpp"
+#include "data/features/feature_id.hpp"
 #include "data/features/feature_schema.hpp"
 
 #include <cassert>
@@ -42,7 +42,7 @@ public:
 int main() {
     auto strategy = std::make_shared<InspectCrossSectionStrategy>();
     FeatureConfig feature_config{
-        FeatureSchema(std::vector<FeatureKind>{FeatureKind::Return}),
+        FeatureSchema(std::vector<FeatureId>{FeatureId::Ret1D}),
         1,
         true
     };

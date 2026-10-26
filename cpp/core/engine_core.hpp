@@ -5,7 +5,7 @@
 #include "portfolio/portfolio.hpp"
 #include "risk/base.hpp"
 #include "strategy/base.hpp"
-#include "data/features/config/feature_config.hpp"
+#include "data/features/feature_config.hpp"
 #include "data/features/feature_engine.hpp"
 
 #include <deque>

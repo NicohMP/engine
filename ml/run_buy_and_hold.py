@@ -84,7 +84,7 @@ def run_buy_hold_backtest(
 
     # Prepare feature configuration class with empty schema (no features compputed)
     feature_config = engine_cpp.FeatureConfig(
-        engine_cpp.FeatureSchema([engine_cpp.FeatureKind.Return]),
+        engine_cpp.FeatureSchema([engine_cpp.FeatureId.Ret1D]),
         window=20,
         enable_cross_section=False,
     )
